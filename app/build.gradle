@@ -22,6 +22,9 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+        debug {
+            testCoverageEnabled true
+        }
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -33,10 +36,31 @@ android {
     buildFeatures {
         viewBinding true
     }
+
+    apply plugin: 'jacoco'
+
+    task jacocoReport(type: JacocoReport) {
+        reports {
+            // todo fix deprecation
+            xml.enabled = true
+            html.enabled = true
+        }
+
+        group = "Reporting"
+        description = "generate merged coverage report for unit and instrumented tests"
+
+        dependsOn clean
+        dependsOn 'createDebugUnitTestCoverageReport' // todo check why task is not visible
+        dependsOn 'createDebugAndroidTestCoverageReport' // todo check why task is not visible
+
+        def fileFilter = ['**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*', '**/*Test*.*', 'android/**/*.*']
+        sourceDirectories.from = files(["src/main/java"])
+        classDirectories.from = files([fileTree(dir: "${project.buildDir}/tmp/kotlin-classes/debug", excludes: fileFilter)])
+        executionData.from = fileTree(dir: project.projectDir, includes: ['**/*.exec', '**/*.ec'])
+    }
 }
 
 dependencies {
-
     implementation 'androidx.core:core-ktx:1.7.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.8.0'
@@ -46,4 +70,7 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+
+    androidTestImplementation "androidx.test:core:1.5.0"
+    androidTestImplementation "androidx.test:core-ktx:1.5.0"
 }
