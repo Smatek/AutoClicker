@@ -50,8 +50,8 @@ android {
         description = "generate merged coverage report for unit and instrumented tests"
 
         dependsOn clean
-        dependsOn 'createDebugUnitTestCoverageReport' // todo check why task is not visible
-        dependsOn 'createDebugAndroidTestCoverageReport' // todo check why task is not visible
+        dependsOn 'createDebugUnitTestCoverageReport'
+        dependsOn 'createDebugAndroidTestCoverageReport'
 
         def fileFilter = ['**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*', '**/*Test*.*', 'android/**/*.*']
         sourceDirectories.from = files(["src/main/java"])
