@@ -37,6 +37,11 @@ android {
         viewBinding true
     }
 
+    setUpJacoco()
+    setUpKtLint()
+}
+
+def setUpJacoco() {
     apply plugin: 'jacoco'
 
     task jacocoReport(type: JacocoReport) {
@@ -58,8 +63,6 @@ android {
         classDirectories.from = files([fileTree(dir: "${project.buildDir}/tmp/kotlin-classes/debug", excludes: fileFilter)])
         executionData.from = fileTree(dir: project.projectDir, includes: ['**/*.exec', '**/*.ec'])
     }
-
-    setUpKtLint()
 }
 
 def setUpKtLint() {
