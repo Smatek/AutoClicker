@@ -1,6 +1,8 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
+    id 'kotlin-kapt'
+    id 'com.google.dagger.hilt.android'
 }
 
 android {
@@ -14,7 +16,7 @@ android {
         versionCode 1
         versionName "1.0"
 
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner "pl.skolimowski.autoclicker.HiltTestRunner"
     }
 
     buildTypes {
@@ -35,6 +37,16 @@ android {
     }
     buildFeatures {
         viewBinding true
+    }
+
+    testOptions {
+        // solves issue of using mockk in instrumented test
+        // https://github.com/mockk/mockk/issues/297
+        packagingOptions {
+            jniLibs {
+                useLegacyPackaging true
+            }
+        }
     }
 
     setUpJacoco()
@@ -85,16 +97,29 @@ def setUpKtLint() {
 }
 
 dependencies {
+    // UI
     implementation 'androidx.core:core-ktx:1.7.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.8.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'androidx.navigation:navigation-fragment-ktx:2.5.3'
     implementation 'androidx.navigation:navigation-ui-ktx:2.5.3'
+
+    // tests
     testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation "androidx.test:core:1.5.0"
+    androidTestImplementation "androidx.test:core-ktx:1.5.0"
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 
-    androidTestImplementation "androidx.test:core:1.5.0"
-    androidTestImplementation "androidx.test:core-ktx:1.5.0"
+    // mockk
+    testImplementation "io.mockk:mockk-android:1.12.3"
+    androidTestImplementation "io.mockk:mockk-android:1.12.3"
+
+    // hilt
+    // todo use same version as in root/build.gradle
+    implementation "com.google.dagger:hilt-android:2.44"
+    kapt "com.google.dagger:hilt-compiler:2.44"
+    androidTestImplementation 'com.google.dagger:hilt-android-testing:2.44'
+    kaptAndroidTest 'com.google.dagger:hilt-android-compiler:2.44'
 }

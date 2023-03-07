@@ -1,8 +1,11 @@
 package pl.skolimowski.autoclicker
 
 import androidx.lifecycle.ViewModel
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class MainActivityViewModel : ViewModel() {
+@HiltViewModel
+class MainActivityViewModel @Inject constructor() : ViewModel() {
     fun testMethod(): String {
         return "test"
     }
