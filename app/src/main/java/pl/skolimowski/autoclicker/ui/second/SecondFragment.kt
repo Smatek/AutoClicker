@@ -10,7 +10,6 @@ import pl.skolimowski.autoclicker.ui.base.BaseViewBindingFragment
 class SecondFragment : BaseViewBindingFragment<FragmentSecondBinding>() {
     override val bindingInflater: (LayoutInflater, ViewGroup?, Boolean) -> FragmentSecondBinding
         get() = FragmentSecondBinding::inflate
-
     override fun setup() {
         binding.buttonSecond.setOnClickListener {
             findNavController().navigate(R.id.action_SecondFragment_to_FirstFragment)
