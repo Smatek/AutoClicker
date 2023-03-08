@@ -1,4 +1,4 @@
-package pl.skolimowski.autoclicker
+package pl.skolimowski.autoclicker.ui.main
 
 import android.view.LayoutInflater
 import androidx.activity.viewModels
@@ -8,8 +8,9 @@ import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
-import pl.skolimowski.autoclicker.base.BaseViewBindingActivity
+import pl.skolimowski.autoclicker.R
 import pl.skolimowski.autoclicker.databinding.ActivityMainBinding
+import pl.skolimowski.autoclicker.ui.base.BaseViewBindingActivity
 
 @AndroidEntryPoint
 class MainActivity : BaseViewBindingActivity<ActivityMainBinding>() {

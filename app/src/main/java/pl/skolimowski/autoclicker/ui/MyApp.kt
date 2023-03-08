@@ -1,4 +1,4 @@
-package pl.skolimowski.autoclicker
+package pl.skolimowski.autoclicker.ui
 
 import android.app.Application
 import dagger.hilt.android.HiltAndroidApp

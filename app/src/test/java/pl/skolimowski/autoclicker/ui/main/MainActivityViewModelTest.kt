@@ -1,6 +1,5 @@
-package pl.skolimowski.autoclicker
+package pl.skolimowski.autoclicker.ui.main
 
-import org.junit.Assert.*
 import org.junit.Test
 
 class MainActivityViewModelTest {

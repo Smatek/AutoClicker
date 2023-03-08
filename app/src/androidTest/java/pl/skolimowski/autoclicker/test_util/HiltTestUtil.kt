@@ -1,4 +1,4 @@
-package pl.skolimowski.autoclicker
+package pl.skolimowski.autoclicker.test_util
 
 import android.content.ComponentName
 import android.content.Intent
@@ -7,7 +7,6 @@ import androidx.core.util.Preconditions
 import androidx.fragment.app.Fragment
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
-import pl.skolimowski.autoclicker.test_util.HiltTestActivity
 
 object HiltTestUtil {
     // https://developer.android.com/training/dependency-injection/hilt-testing#launchfragment

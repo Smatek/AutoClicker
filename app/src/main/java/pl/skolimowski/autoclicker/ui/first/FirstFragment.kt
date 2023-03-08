@@ -1,12 +1,13 @@
-package pl.skolimowski.autoclicker
+package pl.skolimowski.autoclicker.ui.first
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import dagger.hilt.android.AndroidEntryPoint
-import pl.skolimowski.autoclicker.base.BaseViewBindingFragment
+import pl.skolimowski.autoclicker.R
 import pl.skolimowski.autoclicker.databinding.FragmentFirstBinding
+import pl.skolimowski.autoclicker.ui.base.BaseViewBindingFragment
 
 @AndroidEntryPoint
 class FirstFragment : BaseViewBindingFragment<FragmentFirstBinding>() {

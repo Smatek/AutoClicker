@@ -1,8 +1,6 @@
-package pl.skolimowski.autoclicker
+package pl.skolimowski.autoclicker.ui.first
 
-import androidx.test.core.app.launchActivity
 import androidx.test.espresso.Espresso.onView
-import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
@@ -16,25 +14,24 @@ import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import pl.skolimowski.autoclicker.R
+import pl.skolimowski.autoclicker.test_util.HiltTestUtil
 
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
-class MainActivityTest {
+class FirstFragmentTest {
     @get:Rule(order = 0)
     var hiltRule = HiltAndroidRule(this)
 
     @BindValue
-    val viewModel: MainActivityViewModel = mockk(relaxed = true)
+    val viewModel: FirstFragmentViewModel = mockk(relaxed = true)
 
     @Test
-    fun testEvent() {
+    fun verifyText() {
         every { viewModel.testMethod() } returns "testText"
 
-        launchActivity<MainActivity>().use { scenario ->
-            onView(withId(R.id.fab)).perform(click())
+        HiltTestUtil.launchFragmentInHiltContainer<FirstFragment> { }
 
-            onView(withId(com.google.android.material.R.id.snackbar_text))
-                .check(matches(withText("testText")))
-        }
+        onView(withId(R.id.textview_first)).check(matches(withText("testText")))
     }
 }

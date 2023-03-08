@@ -1,4 +1,4 @@
-package pl.skolimowski.autoclicker
+package pl.skolimowski.autoclicker.test_util
 
 import android.app.Application
 import android.content.Context

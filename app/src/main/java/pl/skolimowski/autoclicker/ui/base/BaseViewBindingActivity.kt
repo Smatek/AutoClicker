@@ -1,4 +1,4 @@
-package pl.skolimowski.autoclicker.base
+package pl.skolimowski.autoclicker.ui.base
 
 import android.os.Bundle
 import android.view.LayoutInflater
