@@ -1,12 +1,13 @@
 @file:OptIn(ExperimentalCoroutinesApi::class)
 
-package pl.skolimowski.autoclicker.ui
+package pl.skolimowski.autoclicker.test_util
 
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import pl.skolimowski.autoclicker.ui.DispatcherProvider
 
 // https://developer.android.com/kotlin/coroutines/test#testdispatchers
 abstract class TestDispatchers(private val testDispatcher: TestDispatcher) : DispatcherProvider {
