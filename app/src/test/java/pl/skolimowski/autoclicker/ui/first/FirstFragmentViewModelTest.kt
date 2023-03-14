@@ -1,17 +1,13 @@
 package pl.skolimowski.autoclicker.ui.first
 
-import android.accessibilityservice.AccessibilityServiceInfo
 import android.accessibilityservice.AccessibilityServiceInfo.*
 import android.content.Context
-import android.view.accessibility.AccessibilityManager
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
-import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import pl.skolimowski.autoclicker.test_util.UnconfinedTestDispatcher
-import pl.skolimowski.autoclicker.ui.action_bar.ActionBarService
 import pl.skolimowski.autoclicker.ui.first.FirstFragmentActions.*
 import pl.skolimowski.autoclicker.ui.first.FirstFragmentEvents.*
 

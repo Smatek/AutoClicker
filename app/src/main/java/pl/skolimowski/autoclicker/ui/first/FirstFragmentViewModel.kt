@@ -2,7 +2,6 @@ package pl.skolimowski.autoclicker.ui.first
 
 import android.accessibilityservice.AccessibilityServiceInfo.*
 import android.content.Context
-import android.view.accessibility.AccessibilityManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -13,7 +12,6 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
 import pl.skolimowski.autoclicker.ui.DispatcherProvider
 import pl.skolimowski.autoclicker.ui.UiEvent
-import pl.skolimowski.autoclicker.ui.action_bar.ActionBarService
 import pl.skolimowski.autoclicker.ui.first.FirstFragmentEvents.*
 
 @HiltViewModel
