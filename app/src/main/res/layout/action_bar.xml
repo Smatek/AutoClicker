@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
+    android:id="@+id/root"
     android:orientation="vertical">
 
     <Button
@@ -16,15 +17,15 @@
         android:layout_height="wrap_content"
         android:text="volume" />
 
-    <Button
-        android:id="@+id/scroll"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="scroll" />
-
     <ImageView
         android:id="@+id/iv_close"
         android:layout_width="@dimen/action_bar_icon_size"
         android:layout_height="@dimen/action_bar_icon_size"
         android:src="@drawable/baseline_close_24" />
+
+    <ImageView
+        android:id="@+id/iv_drag"
+        android:layout_width="@dimen/action_bar_icon_size"
+        android:layout_height="@dimen/action_bar_icon_size"
+        android:src="@drawable/baseline_drag_indicator_24" />
 </LinearLayout>
