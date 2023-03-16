@@ -11,8 +11,10 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import pl.skolimowski.autoclicker.MyApp
 import pl.skolimowski.autoclicker.R
 import pl.skolimowski.autoclicker.ui.UiEvent
@@ -40,14 +42,7 @@ class ActionBarService : AccessibilityService() {
     override fun onServiceConnected() {
         wm = getSystemService(WINDOW_SERVICE) as WindowManager
 
-        viewsContainer = FrameLayout(this)
-        val inflater = LayoutInflater.from(this)
-        inflater.inflate(R.layout.action_bar, viewsContainer)
-
-        params = createWindowLayoutParams()
-
-        wm.addView(viewsContainer, params)
-
+        createView()
         setUpView()
     }
 
@@ -59,6 +54,16 @@ class ActionBarService : AccessibilityService() {
 
     override fun onAccessibilityEvent(p0: AccessibilityEvent?) {
         TODO("Not yet implemented")
+    }
+
+    private fun createView() {
+        viewsContainer = FrameLayout(this)
+        val inflater = LayoutInflater.from(this)
+        inflater.inflate(R.layout.action_bar, viewsContainer)
+
+        params = createWindowLayoutParams()
+
+        wm.addView(viewsContainer, params)
     }
 
     override fun onInterrupt() {
@@ -85,39 +90,46 @@ class ActionBarService : AccessibilityService() {
         setUpDrag()
     }
 
-    // todo move logic to view model
-    // https://stackoverflow.com/a/51361730
-    @SuppressLint("ClickableViewAccessibility") // todo check suppress
     private fun setUpDrag() {
+        collectDragState()
+        setUpDragTouchListener()
+    }
+
+    @SuppressLint("ClickableViewAccessibility") // todo check suppress
+    // https://stackoverflow.com/a/51361730
+    private fun setUpDragTouchListener() {
         val root = viewsContainer.findViewById<LinearLayout>(R.id.root)
-
-        var initialX = 0
-        var initialY = 0
-        var initialTouchX = 0f
-        var initialTouchY = 0f
-
         root.setOnTouchListener { view, event ->
             when (event.action) {
                 ACTION_DOWN -> {
-                    initialX = params.x
-                    initialY = params.y
-
-                    initialTouchX = event.rawX
-                    initialTouchY = event.rawY
+                    viewModel.onUiEvent(
+                        OnActionDownTouchEvent(params.x, params.y, event.rawX, event.rawY)
+                    )
 
                     return@setOnTouchListener true
                 }
                 ACTION_MOVE -> {
-                    params.x = initialX + (event.rawX - initialTouchX).toInt()
-                    params.y = initialY + (event.rawY - initialTouchY).toInt()
-
-                    wm.updateViewLayout(viewsContainer, params)
+                    viewModel.onUiEvent(OnActionMoveTouchEvent(event.rawX, event.rawY))
 
                     return@setOnTouchListener true
                 }
+                else -> {
+                    return@setOnTouchListener false
+                }
             }
+        }
+    }
 
-            return@setOnTouchListener false
+    private fun collectDragState() {
+        myApp.applicationScope.launch {
+            viewModel.dragStateFlow.collectLatest {
+                withContext(Dispatchers.Main) {
+                    params.x = it.x
+                    params.y = it.y
+
+                    wm.updateViewLayout(viewsContainer, params)
+                }
+            }
         }
     }
 
@@ -136,6 +148,10 @@ class ActionBarService : AccessibilityService() {
 
 sealed class ActionBarServiceEvents : UiEvent() {
     object OnCloseImageClickedEvent : ActionBarServiceEvents()
+    class OnActionDownTouchEvent(val x: Int, val y: Int, val rawX: Float, val rawY: Float) :
+        ActionBarServiceEvents()
+
+    class OnActionMoveTouchEvent(val rawX: Float, val rawY: Float) : ActionBarServiceEvents()
 }
 
 sealed class ActionBarServiceActions {

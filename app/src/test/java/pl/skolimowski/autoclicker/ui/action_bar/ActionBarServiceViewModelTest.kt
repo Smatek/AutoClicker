@@ -41,4 +41,14 @@ class ActionBarServiceViewModelTest {
             assertThat(action).isInstanceOf(OnDisableSelfAction::class.java)
         }
     }
+
+    @Test
+    fun onUiEvent_OnActionDownTouchEvent() = runTest {
+        // todo
+    }
+
+    @Test
+    fun onUiEvent_OnActionMoveTouchEvent() = runTest {
+        // todo
+    }
 }
