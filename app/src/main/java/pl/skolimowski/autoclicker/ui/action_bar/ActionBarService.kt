@@ -21,6 +21,7 @@ import pl.skolimowski.autoclicker.MyApp
 import pl.skolimowski.autoclicker.R
 import pl.skolimowski.autoclicker.ui.UiEvent
 import pl.skolimowski.autoclicker.ui.action_bar.ActionBarServiceEvents.*
+import pl.skolimowski.autoclicker.ui.action_bar.DragEvents.*
 
 // AFAIK there is no way to test UI of AccessibilityService.
 // There is method to test callbacks like onAccessibilityEvent presented in google samples
@@ -147,13 +148,46 @@ class ActionBarService : AccessibilityService() {
     private fun createClickPointView(index: Int): ClickPointViewHolder {
         val view = FrameLayout(this)
         val inflater = LayoutInflater.from(this)
-        inflater.inflate(R.layout.action_bar, view) // todo create actual click point
+        inflater.inflate(R.layout.click_point, view)
 
-        // todo setup drag listener
+        setUpClickPointDragTouchListener(view, index)
 
         val params = createWindowLayoutParams()
 
         return ClickPointViewHolder(index = index, view = view, params = params)
+    }
+
+    @SuppressLint("ClickableViewAccessibility") // todo check suppress
+    // https://stackoverflow.com/a/51361730
+    private fun setUpClickPointDragTouchListener(view: FrameLayout, index: Int) {
+        val root = view.findViewById<FrameLayout>(R.id.root)
+        root.setOnTouchListener { _, event ->
+            when (event.action) {
+                ACTION_DOWN -> {
+                    viewModel.onUiEvent(
+                        OnClickPointActionDownTouchEvent(
+                            index = index,
+                            actionDown = ActionDown(params.x, params.y, event.rawX, event.rawY)
+                        )
+                    )
+
+                    return@setOnTouchListener true
+                }
+                ACTION_MOVE -> {
+                    viewModel.onUiEvent(
+                        OnClickPointActionMoveTouchEvent(
+                            index = index,
+                            actionMove = ActionMove(event.rawX, event.rawY)
+                        )
+                    )
+
+                    return@setOnTouchListener true
+                }
+                else -> {
+                    return@setOnTouchListener false
+                }
+            }
+        }
     }
 
     private fun collectActions() {
@@ -184,29 +218,35 @@ class ActionBarService : AccessibilityService() {
             viewModel.onUiEvent(OnAddImageClickedEvent)
         }
 
-        setUpDrag()
+        setUpActionBarDrag()
     }
 
-    private fun setUpDrag() {
-        collectDragState()
-        setUpDragTouchListener()
+    private fun setUpActionBarDrag() {
+        collectActionBarDragState()
+        setUpActionBarDragTouchListener()
     }
 
     @SuppressLint("ClickableViewAccessibility") // todo check suppress
     // https://stackoverflow.com/a/51361730
-    private fun setUpDragTouchListener() {
+    private fun setUpActionBarDragTouchListener() {
         val root = viewsContainer.findViewById<LinearLayout>(R.id.root)
         root.setOnTouchListener { view, event ->
             when (event.action) {
                 ACTION_DOWN -> {
                     viewModel.onUiEvent(
-                        OnActionDownTouchEvent(params.x, params.y, event.rawX, event.rawY)
+                        OnActionBarActionDownTouchEvent(
+                            actionDown = ActionDown(params.x, params.y, event.rawX, event.rawY)
+                        )
                     )
 
                     return@setOnTouchListener true
                 }
                 ACTION_MOVE -> {
-                    viewModel.onUiEvent(OnActionMoveTouchEvent(event.rawX, event.rawY))
+                    viewModel.onUiEvent(
+                        OnActionBarActionMoveTouchEvent(
+                            actionMove = ActionMove(event.rawX, event.rawY)
+                        )
+                    )
 
                     return@setOnTouchListener true
                 }
@@ -217,7 +257,7 @@ class ActionBarService : AccessibilityService() {
         }
     }
 
-    private fun collectDragState() {
+    private fun collectActionBarDragState() {
         myApp.applicationScope.launch {
             viewModel.dragStateFlow.collectLatest {
                 withContext(Dispatchers.Main) {
@@ -252,10 +292,15 @@ class ClickPointViewHolder(
 sealed class ActionBarServiceEvents : UiEvent() {
     object OnAddImageClickedEvent : ActionBarServiceEvents()
     object OnCloseImageClickedEvent : ActionBarServiceEvents()
-    class OnActionDownTouchEvent(val x: Int, val y: Int, val rawX: Float, val rawY: Float) :
-        ActionBarServiceEvents()
+    class OnActionBarActionDownTouchEvent(val actionDown: ActionDown) : ActionBarServiceEvents()
+    class OnActionBarActionMoveTouchEvent(val actionMove: ActionMove) : ActionBarServiceEvents()
+    class OnClickPointActionDownTouchEvent(val index: Int, val actionDown: ActionDown) : ActionBarServiceEvents()
+    class OnClickPointActionMoveTouchEvent(val index: Int, val actionMove: ActionMove) : ActionBarServiceEvents()
+}
 
-    class OnActionMoveTouchEvent(val rawX: Float, val rawY: Float) : ActionBarServiceEvents()
+sealed class DragEvents {
+    class ActionDown(val x: Int, val y: Int, val rawX: Float, val rawY: Float) : DragEvents()
+    class ActionMove(val rawX: Float, val rawY: Float) : DragEvents()
 }
 
 sealed class ActionBarServiceActions {

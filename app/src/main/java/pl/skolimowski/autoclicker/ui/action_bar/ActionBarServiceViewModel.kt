@@ -46,33 +46,71 @@ class ActionBarServiceViewModel @Inject constructor(
                     _actionsSharedFlow.emit(ActionBarServiceActions.OnDisableSelfAction)
                 }
             }
-            is OnActionDownTouchEvent -> {
-                Timber.i(
-                    """onActionDown 
-                    |uiEvent.x: ${uiEvent.x}, 
-                    |uiEvent.y: ${uiEvent.y}, 
-                    |uiEvent.rawX: ${uiEvent.rawX}, 
-                    |uiEvent.rawY: ${uiEvent.rawY}""".trimMargin()
-                )
+            is OnActionBarActionDownTouchEvent -> {
+                val actionDown = uiEvent.actionDown
 
                 _dragStateFlow.value = dragStateFlow.value.copy(
-                    initialX = uiEvent.x,
-                    initialY = uiEvent.y,
-                    initialTouchX = uiEvent.rawX,
-                    initialTouchY = uiEvent.rawY
+                    initialX = actionDown.x,
+                    initialY = actionDown.y,
+                    initialTouchX = actionDown.rawX,
+                    initialTouchY = actionDown.rawY
                 )
             }
-            is OnActionMoveTouchEvent -> {
+            is OnActionBarActionMoveTouchEvent -> {
+                val actionMove = uiEvent.actionMove
                 val dragState = dragStateFlow.value
-                val newX = dragState.initialX + (uiEvent.rawX - dragState.initialTouchX).toInt()
-                val newY = dragState.initialY + (uiEvent.rawY - dragState.initialTouchY).toInt()
+                val newX = dragState.initialX + (actionMove.rawX - dragState.initialTouchX).toInt()
+                val newY = dragState.initialY + (actionMove.rawY - dragState.initialTouchY).toInt()
 
                 _dragStateFlow.value = dragState.copy(
                     x = newX,
                     y = newY
                 )
             }
+            is OnClickPointActionDownTouchEvent -> {
+                val actionDown = uiEvent.actionDown
+
+                clickPointsStateFlow.value.list.find { it.index == uiEvent.index }?.let { clickPoint ->
+                    val updatedClickPoint = clickPoint.copy(
+                        dragState = clickPoint.dragState.copy(
+                            initialX = actionDown.x,
+                            initialY = actionDown.y,
+                            initialTouchX = actionDown.rawX,
+                            initialTouchY = actionDown.rawY
+                        )
+                    )
+
+                    updateClickPoint(updatedClickPoint)
+                }
+            }
+            is OnClickPointActionMoveTouchEvent -> {
+                clickPointsStateFlow.value.list.find { it.index == uiEvent.index }?.let { clickPoint ->
+                    val actionMove = uiEvent.actionMove
+                    val dragState = clickPoint.dragState
+                    val newX = dragState.initialX + (actionMove.rawX - dragState.initialTouchX).toInt()
+                    val newY = dragState.initialY + (actionMove.rawY - dragState.initialTouchY).toInt()
+
+                    val updatedClickPoint = clickPoint.copy(
+                        dragState = clickPoint.dragState.copy(
+                            x = newX,
+                            y = newY
+                        )
+                    )
+
+                    updateClickPoint(updatedClickPoint)
+                }
+            }
         }
+    }
+
+    private fun updateClickPoint(updatedClickPoint: ClickPoint) {
+        val newList = clickPointsStateFlow.value.list.toMutableList()
+        val indexOfFirst = newList.indexOfFirst { it.index == updatedClickPoint.index }
+        newList[indexOfFirst] = updatedClickPoint
+
+        _clickPointsStateFlow.value = clickPointsStateFlow.value.copy(
+            list = newList
+        )
     }
 }
 
