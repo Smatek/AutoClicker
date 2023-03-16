@@ -51,4 +51,9 @@ class ActionBarServiceViewModelTest {
     fun onUiEvent_OnActionMoveTouchEvent() = runTest {
         // todo
     }
+
+    @Test
+    fun onUiEvent_OnAddImageClickedEvent() = runTest {
+        // todo
+    }
 }

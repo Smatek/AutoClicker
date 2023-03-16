@@ -36,6 +36,7 @@ class ActionBarService : AccessibilityService() {
     @Inject
     lateinit var myApp: MyApp
 
+    private val clickPointViewHolders = mutableListOf<ClickPointViewHolder>()
     private lateinit var viewsContainer: FrameLayout
 
     lateinit var wm: WindowManager
@@ -46,6 +47,7 @@ class ActionBarService : AccessibilityService() {
 
         createView()
         setUpView()
+        setUpClickPoints()
     }
 
     override fun onCreate() {
@@ -72,6 +74,88 @@ class ActionBarService : AccessibilityService() {
         TODO("Not yet implemented")
     }
 
+    private fun setUpClickPoints() {
+        myApp.applicationScope.launch {
+            viewModel.clickPointsStateFlow.collectLatest { clickPointsState ->
+                val clickPointList = clickPointsState.list
+
+                removeOldClickPoints(clickPointList, clickPointViewHolders)
+                addNewClickPoints(clickPointList, clickPointViewHolders)
+                updateChangedClickPoints(clickPointList, clickPointViewHolders)
+            }
+        }
+    }
+
+    private suspend fun updateChangedClickPoints(
+        clickPointList: List<ClickPoint>,
+        clickPointViewHolders: MutableList<ClickPointViewHolder>
+    ) {
+        clickPointList.forEach { clickPoint ->
+            clickPointViewHolders.find { clickPointView -> clickPointView.index == clickPoint.index }
+                ?.let { clickPointView ->
+                    if (clickPoint.dragState.x != clickPointView.params.x || clickPoint.dragState.y != clickPointView.params.y) {
+                        clickPointView.params.x = clickPoint.dragState.x
+                        clickPointView.params.y = clickPoint.dragState.y
+
+                        withContext(Dispatchers.Main) {
+                            wm.updateViewLayout(clickPointView.view, clickPointView.params)
+                        }
+                    }
+                }
+                ?: throw IllegalStateException("no click point view with index ${clickPoint.index}")
+        }
+    }
+
+    private suspend fun addNewClickPoints(
+        clickPointList: List<ClickPoint>,
+        clickPointViewHolders: MutableList<ClickPointViewHolder>
+    ) {
+        clickPointList.forEach { clickPoint ->
+            val find =
+                clickPointViewHolders.find { clickPointView -> clickPointView.index == clickPoint.index }
+
+            if (find == null) {
+                withContext(Dispatchers.Main) {
+                    val clickPointView = createClickPointView(clickPoint.index)
+
+                    wm.addView(clickPointView.view, clickPointView.params)
+
+                    clickPointViewHolders.add(clickPointView)
+                }
+            }
+        }
+    }
+
+    private suspend fun removeOldClickPoints(
+        clickPointList: List<ClickPoint>,
+        clickPointViewHolders: MutableList<ClickPointViewHolder>
+    ) {
+        clickPointViewHolders.forEach { clickPointView ->
+            val find =
+                clickPointList.find { clickPoint -> clickPoint.index == clickPointView.index }
+
+            if (find == null) {
+                withContext(Dispatchers.Main) {
+                    wm.removeView(clickPointView.view)
+                }
+
+                clickPointViewHolders.remove(clickPointView)
+            }
+        }
+    }
+
+    private fun createClickPointView(index: Int): ClickPointViewHolder {
+        val view = FrameLayout(this)
+        val inflater = LayoutInflater.from(this)
+        inflater.inflate(R.layout.action_bar, view) // todo create actual click point
+
+        // todo setup drag listener
+
+        val params = createWindowLayoutParams()
+
+        return ClickPointViewHolder(index = index, view = view, params = params)
+    }
+
     private fun collectActions() {
         myApp.applicationScope.launch {
             viewModel.actionsSharedFlow.collectLatest {
@@ -94,6 +178,10 @@ class ActionBarService : AccessibilityService() {
     private fun setUpView() {
         viewsContainer.findViewById<ImageView>(R.id.iv_close).setOnClickListener {
             viewModel.onUiEvent(OnCloseImageClickedEvent)
+        }
+
+        viewsContainer.findViewById<ImageView>(R.id.iv_add).setOnClickListener {
+            viewModel.onUiEvent(OnAddImageClickedEvent)
         }
 
         setUpDrag()
@@ -155,7 +243,14 @@ class ActionBarService : AccessibilityService() {
     }
 }
 
+class ClickPointViewHolder(
+    val index: Int,
+    val view: View,
+    val params: WindowManager.LayoutParams
+)
+
 sealed class ActionBarServiceEvents : UiEvent() {
+    object OnAddImageClickedEvent : ActionBarServiceEvents()
     object OnCloseImageClickedEvent : ActionBarServiceEvents()
     class OnActionDownTouchEvent(val x: Int, val y: Int, val rawX: Float, val rawY: Float) :
         ActionBarServiceEvents()

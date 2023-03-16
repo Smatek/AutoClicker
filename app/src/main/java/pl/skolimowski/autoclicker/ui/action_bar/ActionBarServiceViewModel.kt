@@ -24,6 +24,9 @@ class ActionBarServiceViewModel @Inject constructor(
     private val _dragStateFlow = MutableStateFlow(DragState())
     val dragStateFlow: StateFlow<DragState> = _dragStateFlow
 
+    private val _clickPointsStateFlow = MutableStateFlow(ClickPointsState())
+    val clickPointsStateFlow: StateFlow<ClickPointsState> = _clickPointsStateFlow
+
     private val _actionsSharedFlow = MutableSharedFlow<ActionBarServiceActions>()
     val actionsSharedFlow: SharedFlow<ActionBarServiceActions> = _actionsSharedFlow
 
@@ -31,6 +34,13 @@ class ActionBarServiceViewModel @Inject constructor(
         Timber.i("uiEvent: $uiEvent")
 
         when (uiEvent) {
+            is OnAddImageClickedEvent -> {
+                val newClickPoint = clickPointsStateFlow.value.createNewClickPoint()
+                val newList = clickPointsStateFlow.value.list.toMutableList()
+                newList.add(newClickPoint)
+
+                _clickPointsStateFlow.value = clickPointsStateFlow.value.copy(list = newList)
+            }
             is OnCloseImageClickedEvent -> {
                 applicationScope.launch(dispatchers.io) {
                     _actionsSharedFlow.emit(ActionBarServiceActions.OnDisableSelfAction)
@@ -65,6 +75,21 @@ class ActionBarServiceViewModel @Inject constructor(
         }
     }
 }
+
+data class ClickPointsState(
+    val list: List<ClickPoint> = mutableListOf()
+) {
+    fun createNewClickPoint(): ClickPoint {
+        val highestIdValue = list.maxOfOrNull { it.index } ?: 0
+
+        return ClickPoint(highestIdValue + 1)
+    }
+}
+
+data class ClickPoint(
+    val index: Int = 0,
+    val dragState: DragState = DragState()
+)
 
 data class DragState(
     val initialX: Int = 0,

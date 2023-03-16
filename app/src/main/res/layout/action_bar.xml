@@ -5,27 +5,21 @@
     android:id="@+id/root"
     android:orientation="vertical">
 
-    <Button
-        android:id="@+id/power"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="power" />
-
-    <Button
-        android:id="@+id/volume_up"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="volume" />
-
     <ImageView
-        android:id="@+id/iv_close"
+        android:id="@+id/iv_add"
         android:layout_width="@dimen/action_bar_icon_size"
         android:layout_height="@dimen/action_bar_icon_size"
-        android:src="@drawable/baseline_close_24" />
+        android:src="@drawable/baseline_add_24" />
 
     <ImageView
         android:id="@+id/iv_drag"
         android:layout_width="@dimen/action_bar_icon_size"
         android:layout_height="@dimen/action_bar_icon_size"
         android:src="@drawable/baseline_drag_indicator_24" />
+
+    <ImageView
+        android:id="@+id/iv_close"
+        android:layout_width="@dimen/action_bar_icon_size"
+        android:layout_height="@dimen/action_bar_icon_size"
+        android:src="@drawable/baseline_close_24" />
 </LinearLayout>
