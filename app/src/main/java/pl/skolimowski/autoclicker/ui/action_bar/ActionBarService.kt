@@ -1,7 +1,9 @@
 package pl.skolimowski.autoclicker.ui.action_bar
 
 import android.accessibilityservice.AccessibilityService
+import android.accessibilityservice.GestureDescription
 import android.annotation.SuppressLint
+import android.graphics.Path
 import android.graphics.PixelFormat
 import android.view.*
 import android.view.MotionEvent.*
@@ -76,6 +78,13 @@ class ActionBarService : AccessibilityService() {
                 when (it) {
                     is ActionBarServiceActions.OnDisableSelfAction -> {
                         disableSelf()
+                    }
+                    is ActionBarServiceActions.PerformClickAction -> {
+                        val path = Path()
+                        path.moveTo(it.x, it.y)
+                        val builder = GestureDescription.Builder()
+                        builder.addStroke(GestureDescription.StrokeDescription(path, 0, 1L))
+                        dispatchGesture(builder.build(), null, null)
                     }
                 }
             }
@@ -156,4 +165,5 @@ sealed class ActionBarServiceEvents : UiEvent() {
 
 sealed class ActionBarServiceActions {
     object OnDisableSelfAction : ActionBarServiceActions()
+    class PerformClickAction(val x: Float, val y: Float) : ActionBarServiceActions()
 }
