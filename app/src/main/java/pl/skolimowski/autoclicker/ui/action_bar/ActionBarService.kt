@@ -61,6 +61,10 @@ class ActionBarService : AccessibilityService() {
         TODO("Not yet implemented")
     }
 
+    override fun onInterrupt() {
+        TODO("Not yet implemented")
+    }
+
     private fun createView() {
         viewsContainer = FrameLayout(this)
         val inflater = LayoutInflater.from(this)
@@ -69,10 +73,6 @@ class ActionBarService : AccessibilityService() {
         params = createWindowLayoutParams()
 
         wm.addView(viewsContainer, params)
-    }
-
-    override fun onInterrupt() {
-        TODO("Not yet implemented")
     }
 
     private fun setUpClickPoints() {
@@ -150,24 +150,30 @@ class ActionBarService : AccessibilityService() {
         val inflater = LayoutInflater.from(this)
         inflater.inflate(R.layout.click_point, view)
 
-        setUpClickPointDragTouchListener(view, index)
-
         val params = createWindowLayoutParams()
+        val clickPointViewHolder = ClickPointViewHolder(index = index, view = view, params = params)
 
-        return ClickPointViewHolder(index = index, view = view, params = params)
+        setUpClickPointDragTouchListener(clickPointViewHolder)
+
+        return clickPointViewHolder
     }
 
     @SuppressLint("ClickableViewAccessibility") // todo check suppress
     // https://stackoverflow.com/a/51361730
-    private fun setUpClickPointDragTouchListener(view: FrameLayout, index: Int) {
-        val root = view.findViewById<FrameLayout>(R.id.root)
+    private fun setUpClickPointDragTouchListener(clickPointViewHolder: ClickPointViewHolder) {
+        val root = clickPointViewHolder.view.findViewById<FrameLayout>(R.id.root)
         root.setOnTouchListener { _, event ->
             when (event.action) {
                 ACTION_DOWN -> {
                     viewModel.onUiEvent(
                         OnClickPointActionDownTouchEvent(
-                            index = index,
-                            actionDown = ActionDown(params.x, params.y, event.rawX, event.rawY)
+                            index = clickPointViewHolder.index,
+                            actionDown = ActionDown(
+                                clickPointViewHolder.params.x,
+                                clickPointViewHolder.params.y,
+                                event.rawX,
+                                event.rawY
+                            )
                         )
                     )
 
@@ -176,7 +182,7 @@ class ActionBarService : AccessibilityService() {
                 ACTION_MOVE -> {
                     viewModel.onUiEvent(
                         OnClickPointActionMoveTouchEvent(
-                            index = index,
+                            index = clickPointViewHolder.index,
                             actionMove = ActionMove(event.rawX, event.rawY)
                         )
                     )
@@ -259,10 +265,11 @@ class ActionBarService : AccessibilityService() {
 
     private fun collectActionBarDragState() {
         myApp.applicationScope.launch {
-            viewModel.dragStateFlow.collectLatest {
+            viewModel.actionBarStateFlow.collectLatest {
                 withContext(Dispatchers.Main) {
-                    params.x = it.x
-                    params.y = it.y
+                    val dragState = it.dragState
+                    params.x = dragState.x
+                    params.y = dragState.y
 
                     wm.updateViewLayout(viewsContainer, params)
                 }
@@ -294,8 +301,11 @@ sealed class ActionBarServiceEvents : UiEvent() {
     object OnCloseImageClickedEvent : ActionBarServiceEvents()
     class OnActionBarActionDownTouchEvent(val actionDown: ActionDown) : ActionBarServiceEvents()
     class OnActionBarActionMoveTouchEvent(val actionMove: ActionMove) : ActionBarServiceEvents()
-    class OnClickPointActionDownTouchEvent(val index: Int, val actionDown: ActionDown) : ActionBarServiceEvents()
-    class OnClickPointActionMoveTouchEvent(val index: Int, val actionMove: ActionMove) : ActionBarServiceEvents()
+    class OnClickPointActionDownTouchEvent(val index: Int, val actionDown: ActionDown) :
+        ActionBarServiceEvents()
+
+    class OnClickPointActionMoveTouchEvent(val index: Int, val actionMove: ActionMove) :
+        ActionBarServiceEvents()
 }
 
 sealed class DragEvents {
