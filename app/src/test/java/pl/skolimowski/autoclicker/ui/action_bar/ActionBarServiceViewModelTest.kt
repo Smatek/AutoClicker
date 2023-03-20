@@ -251,21 +251,308 @@ class ActionBarServiceViewModelTest {
 
     @Test
     fun onUiEvent_OnClickPointActionDownTouchEvent() = runTest {
-        // todo
+        (viewModel.clickPointsStateFlow as MutableStateFlow).value = ClickPointsState(
+            list = listOf(ClickPoint(index = 1))
+        )
+
+        viewModel.onUiEvent(
+            OnClickPointActionDownTouchEvent(
+                index = 1,
+                actionDown = DragEvents.ActionDown(
+                    x = 1,
+                    y = 2,
+                    rawX = 3f,
+                    rawY = 4f
+                )
+            )
+        )
+
+        viewModel.clickPointsStateFlow.test {
+            val state = awaitItem()
+            val dragState = state.list[0].dragState
+
+            assertThat(dragState.initialX).isEqualTo(1)
+            assertThat(dragState.initialY).isEqualTo(2)
+            assertThat(dragState.initialTouchX).isEqualTo(3f)
+            assertThat(dragState.initialTouchY).isEqualTo(4f)
+        }
     }
 
     @Test
-    fun onUiEvent_OnClickPointActionMoveTouchEvent() = runTest {
-        // todo
+    fun onUiEvent_OnClickPointActionMoveTouchEvent_x() = runTest {
+        every { applicationMock.resources.getDimensionPixelSize(R.dimen.click_point_size) } returns 2
+
+        (viewModel.clickPointsStateFlow as MutableStateFlow).value = ClickPointsState(
+            listOf(
+                ClickPoint(
+                    index = 1,
+                    dragState = DragState(
+                        initialX = 1,
+                        initialTouchX = 2f
+                    )
+                )
+            )
+        )
+
+        viewModel.onUiEvent(OnInitialScreenSizeEvent(10, 10))
+
+        viewModel.onUiEvent(
+            OnClickPointActionMoveTouchEvent(
+                index = 1,
+                actionMove = DragEvents.ActionMove(
+                    rawX = 3f,
+                    rawY = 0f
+                )
+            )
+        )
+
+        viewModel.clickPointsStateFlow.test {
+            val state = awaitItem()
+
+            assertThat(state.list[0].dragState.x).isEqualTo(2)
+        }
+    }
+
+    @Test
+    fun onUiEvent_OnClickPointActionMoveTouchEvent_x_outsideLeftBound() = runTest {
+        every { applicationMock.resources.getDimensionPixelSize(R.dimen.click_point_size) } returns 2
+
+        viewModel = createViewModel()
+
+        (viewModel.clickPointsStateFlow as MutableStateFlow).value = ClickPointsState(
+            listOf(
+                ClickPoint(
+                    index = 1,
+                    dragState = DragState(
+                        initialX = 1,
+                        initialTouchX = 2f
+                    )
+                )
+            )
+        )
+
+        viewModel.onUiEvent(OnInitialScreenSizeEvent(10, 10))
+
+        viewModel.onUiEvent(
+            OnClickPointActionMoveTouchEvent(
+                index = 1,
+                actionMove = DragEvents.ActionMove(
+                    rawX = -4f,
+                    rawY = 0f
+                )
+            )
+        )
+
+        viewModel.clickPointsStateFlow.test {
+            val state = awaitItem()
+
+            assertThat(state.list[0].dragState.x).isEqualTo(-4)
+        }
+    }
+
+    @Test
+    fun onUiEvent_OnClickPointActionMoveTouchEvent_x_outsideRightBound() = runTest {
+        every { applicationMock.resources.getDimensionPixelSize(R.dimen.click_point_size) } returns 2
+
+        viewModel = createViewModel()
+
+        (viewModel.clickPointsStateFlow as MutableStateFlow).value = ClickPointsState(
+            listOf(
+                ClickPoint(
+                    index = 1,
+                    dragState = DragState(
+                        initialX = 1,
+                        initialTouchX = 2f
+                    )
+                )
+            )
+        )
+
+        viewModel.onUiEvent(OnInitialScreenSizeEvent(10, 10))
+
+        viewModel.onUiEvent(
+            OnClickPointActionMoveTouchEvent(
+                index = 1,
+                actionMove = DragEvents.ActionMove(
+                    rawX = 7f,
+                    rawY = 0f
+                )
+            )
+        )
+
+        viewModel.clickPointsStateFlow.test {
+            val state = awaitItem()
+
+            assertThat(state.list[0].dragState.x).isEqualTo(4)
+        }
+    }
+
+    @Test
+    fun onUiEvent_OnClickPointActionMoveTouchEvent_y() = runTest {
+        every { applicationMock.resources.getDimensionPixelSize(R.dimen.click_point_size) } returns 2
+
+        (viewModel.clickPointsStateFlow as MutableStateFlow).value = ClickPointsState(
+            listOf(
+                ClickPoint(
+                    index = 1,
+                    dragState = DragState(
+                        initialY = 1,
+                        initialTouchY = 2f
+                    )
+                )
+            )
+        )
+
+        viewModel.onUiEvent(OnInitialScreenSizeEvent(10, 10))
+
+        viewModel.onUiEvent(
+            OnClickPointActionMoveTouchEvent(
+                index = 1,
+                actionMove = DragEvents.ActionMove(
+                    rawX = 0f,
+                    rawY = 3f
+                )
+            )
+        )
+
+        viewModel.clickPointsStateFlow.test {
+            val state = awaitItem()
+
+            assertThat(state.list[0].dragState.y).isEqualTo(2)
+        }
+    }
+
+    @Test
+    fun onUiEvent_OnClickPointActionMoveTouchEvent_y_outsideTopBound() = runTest {
+        every { applicationMock.resources.getDimensionPixelSize(R.dimen.click_point_size) } returns 2
+
+        viewModel = createViewModel()
+
+        (viewModel.clickPointsStateFlow as MutableStateFlow).value = ClickPointsState(
+            listOf(
+                ClickPoint(
+                    index = 1,
+                    dragState = DragState(
+                        initialY = 1,
+                        initialTouchY = 2f
+                    )
+                )
+            )
+        )
+
+        viewModel.onUiEvent(OnInitialScreenSizeEvent(10, 10))
+
+        viewModel.onUiEvent(
+            OnClickPointActionMoveTouchEvent(
+                index = 1,
+                actionMove = DragEvents.ActionMove(
+                    rawX = 0f,
+                    rawY = -4f
+                )
+            )
+        )
+
+        viewModel.clickPointsStateFlow.test {
+            val state = awaitItem()
+
+            assertThat(state.list[0].dragState.y).isEqualTo(-4)
+        }
+    }
+
+    @Test
+    fun onUiEvent_OnClickPointActionMoveTouchEvent_y_outsideUpperBound() = runTest {
+        every { applicationMock.resources.getDimensionPixelSize(R.dimen.click_point_size) } returns 2
+
+        viewModel = createViewModel()
+
+        (viewModel.clickPointsStateFlow as MutableStateFlow).value = ClickPointsState(
+            listOf(
+                ClickPoint(
+                    index = 1,
+                    dragState = DragState(
+                        initialY = 1,
+                        initialTouchY = 2f
+                    )
+                )
+            )
+        )
+
+        viewModel.onUiEvent(OnInitialScreenSizeEvent(10, 10))
+
+        viewModel.onUiEvent(
+            OnClickPointActionMoveTouchEvent(
+                index = 1,
+                actionMove = DragEvents.ActionMove(
+                    rawX = 0f,
+                    rawY = 7f
+                )
+            )
+        )
+
+        viewModel.clickPointsStateFlow.test {
+            val state = awaitItem()
+
+            assertThat(state.list[0].dragState.y).isEqualTo(4)
+        }
     }
 
     @Test
     fun onUiEvent_OnAddImageClickedEvent() = runTest {
-        // todo
+        viewModel.onUiEvent(OnAddImageClickedEvent)
+
+        viewModel.clickPointsStateFlow.test {
+            val state = awaitItem()
+
+            assertThat(state.list.size).isEqualTo(1)
+            assertThat(state.list[0].index).isEqualTo(1)
+        }
+    }
+
+    @Test
+    fun onUiEvent_OnAddImageClickedEvent_alreadyAddedClickPoints() = runTest {
+        (viewModel.clickPointsStateFlow as MutableStateFlow).value = ClickPointsState(
+            listOf(
+                ClickPoint(index = 1)
+            )
+        )
+
+        viewModel.onUiEvent(OnAddImageClickedEvent)
+
+        viewModel.clickPointsStateFlow.test {
+            val state = awaitItem()
+
+            assertThat(state.list.size).isEqualTo(2)
+            assertThat(state.list[1].index).isEqualTo(2)
+        }
     }
 
     @Test
     fun onUiEvent_OnRemoveImageClickedEvent() = runTest {
-        // todo
+        (viewModel.clickPointsStateFlow as MutableStateFlow).value = ClickPointsState(
+            listOf(
+                ClickPoint(index = 1)
+            )
+        )
+
+        viewModel.onUiEvent(OnRemoveImageClickedEvent)
+
+        viewModel.clickPointsStateFlow.test {
+            val state = awaitItem()
+
+            assertThat(state.list.size).isEqualTo(0)
+        }
+    }
+
+    @Test
+    fun onUiEvent_OnRemoveImageClickedEvent_emptyList() = runTest {
+        (viewModel.clickPointsStateFlow as MutableStateFlow).value = ClickPointsState(emptyList())
+
+        viewModel.onUiEvent(OnRemoveImageClickedEvent)
+
+        viewModel.clickPointsStateFlow.test {
+            val state = awaitItem()
+
+            assertThat(state.list.size).isEqualTo(0)
+        }
     }
 }
