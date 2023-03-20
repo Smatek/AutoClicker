@@ -22,6 +22,7 @@ import pl.skolimowski.autoclicker.R
 import pl.skolimowski.autoclicker.ui.UiEvent
 import pl.skolimowski.autoclicker.ui.action_bar.ActionBarServiceEvents.*
 import pl.skolimowski.autoclicker.ui.action_bar.DragEvents.*
+import timber.log.Timber
 
 // AFAIK there is no way to test UI of AccessibilityService.
 // There is method to test callbacks like onAccessibilityEvent presented in google samples
@@ -46,6 +47,7 @@ class ActionBarService : AccessibilityService() {
     override fun onServiceConnected() {
         wm = getSystemService(WINDOW_SERVICE) as WindowManager
 
+        initScreenSize()
         createView()
         setUpView()
         setUpClickPoints()
@@ -63,6 +65,15 @@ class ActionBarService : AccessibilityService() {
 
     override fun onInterrupt() {
         TODO("Not yet implemented")
+    }
+
+    private fun initScreenSize() {
+        val windowMetrics = wm.currentWindowMetrics
+        val windowInsets = windowMetrics.windowInsets
+            .getInsetsIgnoringVisibility(0)
+        val width = windowMetrics.bounds.width() - windowInsets.left - windowInsets.right
+        val height = windowMetrics.bounds.height() - windowInsets.top - windowInsets.bottom
+        viewModel.onUiEvent(OnInitialScreenSizeEvent(width = width, height = height))
     }
 
     private fun createView() {
@@ -204,8 +215,11 @@ class ActionBarService : AccessibilityService() {
                         disableSelf()
                     }
                     is ActionBarServiceActions.PerformClickAction -> {
+                        Timber.i("PerformClickAction x: ${it.x} y: ${it.y}")
+                        Timber.i("PerformClickAction x: ${it.x.toFloat()} y: ${it.y.toFloat()}")
+
                         val path = Path()
-                        path.moveTo(it.x, it.y)
+                        path.moveTo(it.x.toFloat(), it.y.toFloat())
                         val builder = GestureDescription.Builder()
                         builder.addStroke(GestureDescription.StrokeDescription(path, 0, 1L))
                         dispatchGesture(builder.build(), null, null)
@@ -224,6 +238,10 @@ class ActionBarService : AccessibilityService() {
             viewModel.onUiEvent(OnAddImageClickedEvent)
         }
 
+        viewsContainer.findViewById<ImageView>(R.id.iv_play).setOnClickListener {
+            viewModel.onUiEvent(OnPlayImageClickedEvent)
+        }
+
         setUpActionBarDrag()
     }
 
@@ -233,7 +251,7 @@ class ActionBarService : AccessibilityService() {
     }
 
     @SuppressLint("ClickableViewAccessibility") // todo check suppress
-    // https://stackoverflow.com/a/51361730
+// https://stackoverflow.com/a/51361730
     private fun setUpActionBarDragTouchListener() {
         val root = viewsContainer.findViewById<LinearLayout>(R.id.root)
         root.setOnTouchListener { view, event ->
@@ -297,8 +315,10 @@ class ClickPointViewHolder(
 )
 
 sealed class ActionBarServiceEvents : UiEvent() {
+    object OnPlayImageClickedEvent : ActionBarServiceEvents()
     object OnAddImageClickedEvent : ActionBarServiceEvents()
     object OnCloseImageClickedEvent : ActionBarServiceEvents()
+    class OnInitialScreenSizeEvent(val width: Int, val height: Int) : ActionBarServiceEvents()
     class OnActionBarActionDownTouchEvent(val actionDown: ActionDown) : ActionBarServiceEvents()
     class OnActionBarActionMoveTouchEvent(val actionMove: ActionMove) : ActionBarServiceEvents()
     class OnClickPointActionDownTouchEvent(val index: Int, val actionDown: ActionDown) :
@@ -315,5 +335,5 @@ sealed class DragEvents {
 
 sealed class ActionBarServiceActions {
     object OnDisableSelfAction : ActionBarServiceActions()
-    class PerformClickAction(val x: Float, val y: Float) : ActionBarServiceActions()
+    class PerformClickAction(val x: Int, val y: Int) : ActionBarServiceActions()
 }

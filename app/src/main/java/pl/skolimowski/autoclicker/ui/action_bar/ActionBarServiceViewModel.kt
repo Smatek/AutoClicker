@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import pl.skolimowski.autoclicker.MyApp
+import pl.skolimowski.autoclicker.R
 import pl.skolimowski.autoclicker.ui.DispatcherProvider
 import pl.skolimowski.autoclicker.ui.UiEvent
 import pl.skolimowski.autoclicker.ui.action_bar.ActionBarServiceEvents.*
@@ -30,10 +31,35 @@ class ActionBarServiceViewModel @Inject constructor(
     private val _actionsSharedFlow = MutableSharedFlow<ActionBarServiceActions>()
     val actionsSharedFlow: SharedFlow<ActionBarServiceActions> = _actionsSharedFlow
 
+    var viewSizes: ViewSizes = ViewSizes()
+
+    init {
+        viewSizes = viewSizes.copy(
+            clickPointSize = myApp.resources.getDimensionPixelSize(R.dimen.click_point_size)
+        )
+    }
+
     fun onUiEvent(uiEvent: UiEvent) {
         Timber.i("uiEvent: $uiEvent")
 
         when (uiEvent) {
+            is OnInitialScreenSizeEvent -> {
+                viewSizes = viewSizes.copy(
+                    screenWidth = uiEvent.width, screenHeight = uiEvent.height
+                )
+            }
+            is OnPlayImageClickedEvent -> {
+                clickPointsStateFlow.value.list.firstOrNull()?.let { clickPoint ->
+                    applicationScope.launch(dispatchers.io) {
+                        Timber.i("OnPlayImageClickedEvent clickPoint: $clickPoint")
+
+                        val x = clickPoint.dragState.x + viewSizes.screenWidth / 2
+                        val y = clickPoint.dragState.y + viewSizes.screenHeight / 2
+
+                        _actionsSharedFlow.emit(ActionBarServiceActions.PerformClickAction(x, y))
+                    }
+                }
+            }
             is OnAddImageClickedEvent -> {
                 val newClickPoint = clickPointsStateFlow.value.createNewClickPoint()
                 val newList = clickPointsStateFlow.value.list.toMutableList()
@@ -57,7 +83,7 @@ class ActionBarServiceViewModel @Inject constructor(
                 val actionMove = uiEvent.actionMove
 
                 _actionBarStateFlow.value = actionBarStateFlow.value.copy(
-                    dragState = actionBarStateFlow.value.onActionMove(actionMove)
+                    dragState = actionBarStateFlow.value.onActionMove(actionMove, viewSizes)
                 )
             }
             is OnClickPointActionDownTouchEvent -> {
@@ -76,7 +102,7 @@ class ActionBarServiceViewModel @Inject constructor(
                     ?.let { clickPoint ->
                         val actionMove = uiEvent.actionMove
                         val updatedClickPoint = clickPoint.copy(
-                            dragState = clickPoint.onActionMove(actionMove)
+                            dragState = clickPoint.onActionMove(actionMove, viewSizes)
                         )
 
                         updateClickPoint(updatedClickPoint)
@@ -86,6 +112,7 @@ class ActionBarServiceViewModel @Inject constructor(
     }
 
     private fun updateClickPoint(updatedClickPoint: ClickPoint) {
+        Timber.i("updateClickPoint: $updatedClickPoint")
         val newList = clickPointsStateFlow.value.list.toMutableList()
         val indexOfFirst = newList.indexOfFirst { it.index == updatedClickPoint.index }
         newList[indexOfFirst] = updatedClickPoint
@@ -127,14 +154,29 @@ abstract class Draggable {
         )
     }
 
-    fun onActionMove(actionMove: DragEvents.ActionMove): DragState {
+    fun onActionMove(actionMove: DragEvents.ActionMove, viewSizes: ViewSizes): DragState {
         val newX = dragState.initialX + (actionMove.rawX - dragState.initialTouchX).toInt()
         val newY = dragState.initialY + (actionMove.rawY - dragState.initialTouchY).toInt()
 
+        val halfOfScreenWidth = viewSizes.screenWidth / 2 - viewSizes.clickPointSize / 2
+        val halfOfScreenHeight = viewSizes.screenHeight / 2 - viewSizes.clickPointSize / 2
+
+        val newXAdjustedToBounds = getValueInsideBounds(newX, -halfOfScreenWidth, halfOfScreenWidth)
+        val newYAdjustedToBounds =
+            getValueInsideBounds(newY, -halfOfScreenHeight, halfOfScreenHeight)
+
         return dragState.copy(
-            x = newX,
-            y = newY
+            x = newXAdjustedToBounds,
+            y = newYAdjustedToBounds
         )
+    }
+
+    private fun getValueInsideBounds(value: Int, min: Int, max: Int): Int {
+        return when {
+            value < min -> min
+            value > max -> max
+            else -> value
+        }
     }
 }
 
@@ -145,4 +187,10 @@ data class DragState(
     val initialTouchY: Float = 0f,
     val x: Int = 0,
     val y: Int = 0
+)
+
+data class ViewSizes(
+    val screenWidth: Int = 0,
+    val screenHeight: Int = 0,
+    val clickPointSize: Int = 0
 )
