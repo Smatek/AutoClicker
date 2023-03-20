@@ -149,9 +149,9 @@ class ActionBarService : AccessibilityService() {
             if (find == null) {
                 withContext(Dispatchers.Main) {
                     wm.removeView(clickPointView.view)
-                }
 
-                clickPointViewHolders.remove(clickPointView)
+                    clickPointViewHolders.remove(clickPointView)
+                }
             }
         }
     }
@@ -219,16 +219,7 @@ class ActionBarService : AccessibilityService() {
                         Timber.i("PerformClickAction x: ${it.x.toFloat()} y: ${it.y.toFloat()}")
 
                         withContext(Dispatchers.Main) {
-                            // fixme
-                            //  removing and adding clickPoints after gesture is done is not an elegant solution
-                            //  but for now I didn't find anything better. I tried to update layout with
-                            //  FLAG_NOT_TOUCHABLE and it did work because clicks weren't intercept
-                            //  by click point view, but after removing this flag click point never
-                            //  again received touch events that are required for dragging
-                            //
-                            //  IMPORTANT!! when trying to fix this issue remember that in performClick function
-                            //  there is delay of starting gesture
-                            removeClickPoints()
+                            setClickPointsTouchable(false)
 
                             performClick(it.x.toFloat(), it.y.toFloat(), addClickPointsGestureCallback)
                         }
@@ -238,15 +229,11 @@ class ActionBarService : AccessibilityService() {
         }
     }
 
-    private fun removeClickPoints() {
+    private fun setClickPointsTouchable(isTouchable: Boolean) {
         clickPointViewHolders.forEach {
-            wm.removeView(it.view)
-        }
-    }
+            it.setTouchable(isTouchable)
 
-    private fun addClickPoints() {
-        clickPointViewHolders.forEach {
-            wm.addView(it.view, it.params)
+            wm.updateViewLayout(it.view, it.params)
         }
     }
 
@@ -254,8 +241,8 @@ class ActionBarService : AccessibilityService() {
         val path = Path()
         path.moveTo(x, y)
         val builder = GestureDescription.Builder()
-        // start time is set to 10 so click point has time to be removed to not block click
-        builder.addStroke(GestureDescription.StrokeDescription(path, 10, 1L))
+        // start time is set to 100 so click point has time to change params, todo check minimal start time
+        builder.addStroke(GestureDescription.StrokeDescription(path, 100, 1L))
         dispatchGesture(builder.build(), callback, null)
     }
 
@@ -341,13 +328,13 @@ class ActionBarService : AccessibilityService() {
         override fun onCancelled(gestureDescription: GestureDescription?) {
             super.onCancelled(gestureDescription)
 
-            addClickPoints()
+            setClickPointsTouchable(true)
         }
 
         override fun onCompleted(gestureDescription: GestureDescription?) {
             super.onCompleted(gestureDescription)
 
-            addClickPoints()
+            setClickPointsTouchable(true)
         }
     }
 }
@@ -359,9 +346,9 @@ data class ClickPointViewHolder(
 ) {
     fun setTouchable(touchable: Boolean) {
         if (touchable) {
-            params.flags = params.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
-        } else {
             params.flags = params.flags and WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE.inv()
+        } else {
+            params.flags = params.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
         }
     }
 }
