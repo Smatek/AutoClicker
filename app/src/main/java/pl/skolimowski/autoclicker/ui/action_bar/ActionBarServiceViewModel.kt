@@ -158,6 +158,8 @@ abstract class Draggable {
         val newX = dragState.initialX + (actionMove.rawX - dragState.initialTouchX).toInt()
         val newY = dragState.initialY + (actionMove.rawY - dragState.initialTouchY).toInt()
 
+        // fixme this method is used also on actionBar, so if its viewSize is different than clickPoint then this will be bugged.
+        // fixme this needs to be fixed
         val halfOfScreenWidth = viewSizes.screenWidth / 2 - viewSizes.clickPointSize / 2
         val halfOfScreenHeight = viewSizes.screenHeight / 2 - viewSizes.clickPointSize / 2
 
