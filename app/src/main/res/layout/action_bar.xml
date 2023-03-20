@@ -18,6 +18,12 @@
         android:src="@drawable/baseline_add_24" />
 
     <ImageView
+        android:id="@+id/iv_remove"
+        android:layout_width="@dimen/action_bar_icon_size"
+        android:layout_height="@dimen/action_bar_icon_size"
+        android:src="@drawable/baseline_remove_24" />
+
+    <ImageView
         android:id="@+id/iv_drag"
         android:layout_width="@dimen/action_bar_icon_size"
         android:layout_height="@dimen/action_bar_icon_size"

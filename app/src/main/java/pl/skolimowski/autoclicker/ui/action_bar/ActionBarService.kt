@@ -255,6 +255,10 @@ class ActionBarService : AccessibilityService() {
             viewModel.onUiEvent(OnAddImageClickedEvent)
         }
 
+        viewsContainer.findViewById<ImageView>(R.id.iv_remove).setOnClickListener {
+            viewModel.onUiEvent(OnRemoveImageClickedEvent)
+        }
+
         viewsContainer.findViewById<ImageView>(R.id.iv_play).setOnClickListener {
             viewModel.onUiEvent(OnPlayImageClickedEvent)
         }
@@ -356,6 +360,7 @@ data class ClickPointViewHolder(
 sealed class ActionBarServiceEvents : UiEvent() {
     object OnPlayImageClickedEvent : ActionBarServiceEvents()
     object OnAddImageClickedEvent : ActionBarServiceEvents()
+    object OnRemoveImageClickedEvent : ActionBarServiceEvents()
     object OnCloseImageClickedEvent : ActionBarServiceEvents()
     class OnInitialScreenSizeEvent(val width: Int, val height: Int) : ActionBarServiceEvents()
     class OnActionBarActionDownTouchEvent(val actionDown: ActionDown) : ActionBarServiceEvents()
