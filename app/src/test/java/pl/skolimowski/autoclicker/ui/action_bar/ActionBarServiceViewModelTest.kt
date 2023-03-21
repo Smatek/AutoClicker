@@ -555,4 +555,40 @@ class ActionBarServiceViewModelTest {
             assertThat(state.list.size).isEqualTo(0)
         }
     }
+
+    @Test
+    fun onUiEvent_OnPlayImageClickedEvent() = runTest {
+        viewModel.onUiEvent(OnPlayImageClickedEvent)
+
+        viewModel.macroStateFlow.test {
+            val state = awaitItem()
+
+            assertThat(state.isPlaying).isEqualTo(true)
+            assertThat(state.isStopped).isEqualTo(false)
+        }
+    }
+
+    @Test
+    fun onUiEvent_OnPauseImageClickedEvent() = runTest {
+        viewModel.onUiEvent(OnPauseImageClickedEvent)
+
+        viewModel.macroStateFlow.test {
+            val state = awaitItem()
+
+            assertThat(state.isPlaying).isEqualTo(false)
+            assertThat(state.isStopped).isEqualTo(false)
+        }
+    }
+
+    @Test
+    fun onUiEvent_OnStopImageClickedEvent() = runTest {
+        viewModel.onUiEvent(OnStopImageClickedEvent)
+
+        viewModel.macroStateFlow.test {
+            val state = awaitItem()
+
+            assertThat(state.isPlaying).isEqualTo(false)
+            assertThat(state.isStopped).isEqualTo(true)
+        }
+    }
 }

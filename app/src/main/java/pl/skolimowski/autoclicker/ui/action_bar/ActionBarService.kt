@@ -221,7 +221,11 @@ class ActionBarService : AccessibilityService() {
                         withContext(Dispatchers.Main) {
                             setClickPointsTouchable(false)
 
-                            performClick(it.x.toFloat(), it.y.toFloat(), addClickPointsGestureCallback)
+                            performClick(
+                                it.x.toFloat(),
+                                it.y.toFloat(),
+                                addClickPointsGestureCallback
+                            )
                         }
                     }
                 }
@@ -263,7 +267,44 @@ class ActionBarService : AccessibilityService() {
             viewModel.onUiEvent(OnPlayImageClickedEvent)
         }
 
+        viewsContainer.findViewById<ImageView>(R.id.iv_pause).setOnClickListener {
+            viewModel.onUiEvent(OnPauseImageClickedEvent)
+        }
+
+        viewsContainer.findViewById<ImageView>(R.id.iv_stop).setOnClickListener {
+            viewModel.onUiEvent(OnStopImageClickedEvent)
+        }
+
         setUpActionBarDrag()
+        setUpMacroStateCollector()
+    }
+
+    private fun setUpMacroStateCollector() {
+        myApp.applicationScope.launch {
+            viewModel.macroStateFlow.collectLatest {
+                withContext(Dispatchers.Main) {
+                    val playImage = viewsContainer.findViewById<ImageView>(R.id.iv_play)
+                    val pauseImage = viewsContainer.findViewById<ImageView>(R.id.iv_pause)
+                    val stopImage = viewsContainer.findViewById<ImageView>(R.id.iv_stop)
+
+                    if (it.isStopped) {
+                        playImage.visibility = View.VISIBLE
+                        pauseImage.visibility = View.GONE
+                        stopImage.visibility = View.GONE
+                    } else if (it.isPlaying) {
+                        playImage.visibility = View.GONE
+                        pauseImage.visibility = View.VISIBLE
+                        stopImage.visibility = View.VISIBLE
+                    } else {
+                        playImage.visibility = View.VISIBLE
+                        pauseImage.visibility = View.GONE
+                        stopImage.visibility = View.VISIBLE
+                    }
+
+                    wm.updateViewLayout(viewsContainer, params)
+                }
+            }
+        }
     }
 
     private fun setUpActionBarDrag() {
@@ -272,7 +313,7 @@ class ActionBarService : AccessibilityService() {
     }
 
     @SuppressLint("ClickableViewAccessibility") // todo check suppress
-// https://stackoverflow.com/a/51361730
+    // https://stackoverflow.com/a/51361730
     private fun setUpActionBarDragTouchListener() {
         val root = viewsContainer.findViewById<LinearLayout>(R.id.root)
         root.setOnTouchListener { view, event ->
@@ -359,6 +400,8 @@ data class ClickPointViewHolder(
 
 sealed class ActionBarServiceEvents : UiEvent() {
     object OnPlayImageClickedEvent : ActionBarServiceEvents()
+    object OnPauseImageClickedEvent : ActionBarServiceEvents()
+    object OnStopImageClickedEvent : ActionBarServiceEvents()
     object OnAddImageClickedEvent : ActionBarServiceEvents()
     object OnRemoveImageClickedEvent : ActionBarServiceEvents()
     object OnCloseImageClickedEvent : ActionBarServiceEvents()

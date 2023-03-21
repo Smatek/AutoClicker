@@ -28,6 +28,9 @@ class ActionBarServiceViewModel @Inject constructor(
     private val _clickPointsStateFlow = MutableStateFlow(ClickPointsState())
     val clickPointsStateFlow: StateFlow<ClickPointsState> = _clickPointsStateFlow
 
+    private val _macroStateFlow = MutableStateFlow(MacroState())
+    val macroStateFlow: StateFlow<MacroState> = _macroStateFlow
+
     private val _actionsSharedFlow = MutableSharedFlow<ActionBarServiceActions>()
     val actionsSharedFlow: SharedFlow<ActionBarServiceActions> = _actionsSharedFlow
 
@@ -49,16 +52,34 @@ class ActionBarServiceViewModel @Inject constructor(
                 )
             }
             is OnPlayImageClickedEvent -> {
-                clickPointsStateFlow.value.list.firstOrNull()?.let { clickPoint ->
-                    applicationScope.launch(dispatchers.io) {
-                        Timber.i("OnPlayImageClickedEvent clickPoint: $clickPoint")
-
-                        val x = clickPoint.dragState.x + viewSizes.screenWidth / 2
-                        val y = clickPoint.dragState.y + viewSizes.screenHeight / 2
-
-                        _actionsSharedFlow.emit(ActionBarServiceActions.PerformClickAction(x, y))
-                    }
-                }
+//                clickPointsStateFlow.value.list.firstOrNull()?.let { clickPoint ->
+//                    applicationScope.launch(dispatchers.io) {
+//                        Timber.i("OnPlayImageClickedEvent clickPoint: $clickPoint")
+//
+//                        val x = clickPoint.dragState.x + viewSizes.screenWidth / 2
+//                        val y = clickPoint.dragState.y + viewSizes.screenHeight / 2
+//
+//                        _actionsSharedFlow.emit(ActionBarServiceActions.PerformClickAction(x, y))
+//                    }
+//                }
+                // todo loop through clicks, create something like "macro config" it should contain
+                //  infinite / X times / for specified time like 5 min, delay between clicks
+                _macroStateFlow.value = macroStateFlow.value.copy(
+                    isPlaying = true,
+                    isStopped = false
+                )
+            }
+            is OnPauseImageClickedEvent -> {
+                _macroStateFlow.value = macroStateFlow.value.copy(
+                    isPlaying = false,
+                    isStopped = false
+                )
+            }
+            is OnStopImageClickedEvent -> {
+                _macroStateFlow.value = macroStateFlow.value.copy(
+                    isPlaying = false,
+                    isStopped = true
+                )
             }
             is OnAddImageClickedEvent -> {
                 val newClickPoint = clickPointsStateFlow.value.createNewClickPoint()
@@ -128,6 +149,11 @@ class ActionBarServiceViewModel @Inject constructor(
         )
     }
 }
+
+data class MacroState(
+    val isPlaying: Boolean = false,
+    val isStopped: Boolean = true
+)
 
 data class ClickPointsState(
     val list: List<ClickPoint> = mutableListOf()
