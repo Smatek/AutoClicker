@@ -37,20 +37,19 @@ class ActionBarService : AccessibilityService() {
     @Inject
     lateinit var myApp: MyApp
 
+    private val actionBarManager = ActionBarManager()
     private val clickPointsManager = ClickPointsManager()
     private val clickPointViewHolders = mutableListOf<ClickPointViewHolder>()
-    private lateinit var viewsContainer: FrameLayout
 
     lateinit var wm: WindowManager
-    lateinit var params: WindowManager.LayoutParams
 
     override fun onServiceConnected() {
         wm = getSystemService(WINDOW_SERVICE) as WindowManager
 
         initScreenSize()
-        createView()
-        setUpView()
 
+        actionBarManager.createView()
+        actionBarManager.setUpView()
         clickPointsManager.setUp()
     }
 
@@ -77,16 +76,6 @@ class ActionBarService : AccessibilityService() {
         viewModel.onUiEvent(OnInitialScreenSizeEvent(width = width, height = height))
     }
 
-    private fun createView() {
-        viewsContainer = FrameLayout(this)
-        val inflater = LayoutInflater.from(this)
-        inflater.inflate(R.layout.action_bar, viewsContainer)
-
-        params = createWindowLayoutParams()
-
-        wm.addView(viewsContainer, params)
-    }
-
     private fun collectActions() {
         myApp.applicationScope.launch {
             viewModel.actionsSharedFlow.collectLatest {
@@ -104,97 +93,11 @@ class ActionBarService : AccessibilityService() {
         }
     }
 
-    private fun setUpView() {
-        viewsContainer.findViewById<ImageView>(R.id.iv_close).setOnClickListener {
-            viewModel.onUiEvent(OnCloseImageClickedEvent)
-        }
-
-        viewsContainer.findViewById<ImageView>(R.id.iv_add).setOnClickListener {
-            viewModel.onUiEvent(OnAddImageClickedEvent)
-        }
-
-        viewsContainer.findViewById<ImageView>(R.id.iv_remove).setOnClickListener {
-            viewModel.onUiEvent(OnRemoveImageClickedEvent)
-        }
-
-        viewsContainer.findViewById<ImageView>(R.id.iv_play).setOnClickListener {
-            viewModel.onUiEvent(OnPlayImageClickedEvent)
-        }
-
-        viewsContainer.findViewById<ImageView>(R.id.iv_pause).setOnClickListener {
-            viewModel.onUiEvent(OnPauseImageClickedEvent)
-        }
-
-        setUpActionBarDrag()
-        setUpMacroStateCollector()
-    }
-
     private fun setUpMacroStateCollector() {
         myApp.applicationScope.launch {
             viewModel.macroStateFlow.collectLatest {
                 withContext(Dispatchers.Main) {
-                    val playImage = viewsContainer.findViewById<ImageView>(R.id.iv_play)
-                    val pauseImage = viewsContainer.findViewById<ImageView>(R.id.iv_pause)
-
-                    if (it.isPlaying) {
-                        playImage.visibility = View.GONE
-                        pauseImage.visibility = View.VISIBLE
-                    } else {
-                        playImage.visibility = View.VISIBLE
-                        pauseImage.visibility = View.GONE
-                    }
-
-                    wm.updateViewLayout(viewsContainer, params)
-                }
-            }
-        }
-    }
-
-    private fun setUpActionBarDrag() {
-        collectActionBarDragState()
-        setUpActionBarDragTouchListener()
-    }
-
-    @SuppressLint("ClickableViewAccessibility") // todo check suppress
-    // https://stackoverflow.com/a/51361730
-    private fun setUpActionBarDragTouchListener() {
-        val root = viewsContainer.findViewById<LinearLayout>(R.id.root)
-        root.setOnTouchListener { view, event ->
-            when (event.action) {
-                ACTION_DOWN -> {
-                    viewModel.onUiEvent(
-                        OnActionBarActionDownTouchEvent(
-                            actionDown = ActionDown(params.x, params.y, event.rawX, event.rawY)
-                        )
-                    )
-
-                    return@setOnTouchListener true
-                }
-                ACTION_MOVE -> {
-                    viewModel.onUiEvent(
-                        OnActionBarActionMoveTouchEvent(
-                            actionMove = ActionMove(event.rawX, event.rawY)
-                        )
-                    )
-
-                    return@setOnTouchListener true
-                }
-                else -> {
-                    return@setOnTouchListener false
-                }
-            }
-        }
-    }
-
-    private fun collectActionBarDragState() {
-        myApp.applicationScope.launch {
-            viewModel.actionBarStateFlow.collectLatest {
-                withContext(Dispatchers.Main) {
-                    val dragState = it.dragState
-                    params.x = dragState.x
-                    params.y = dragState.y
-
-                    wm.updateViewLayout(viewsContainer, params)
+                    actionBarManager.macroStateChanged(it)
                 }
             }
         }
@@ -388,6 +291,111 @@ class ActionBarService : AccessibilityService() {
                 super.onCompleted(gestureDescription)
 
                 setClickPointsTouchable(true)
+            }
+        }
+    }
+
+    inner class ActionBarManager {
+        lateinit var params: WindowManager.LayoutParams
+        private lateinit var viewsContainer: FrameLayout
+
+        fun createView() {
+            viewsContainer = FrameLayout(this@ActionBarService)
+            val inflater = LayoutInflater.from(this@ActionBarService)
+            inflater.inflate(R.layout.action_bar, viewsContainer)
+
+            params = createWindowLayoutParams()
+
+            wm.addView(viewsContainer, params)
+        }
+
+        fun setUpView() {
+            viewsContainer.findViewById<ImageView>(R.id.iv_close).setOnClickListener {
+                viewModel.onUiEvent(OnCloseImageClickedEvent)
+            }
+
+            viewsContainer.findViewById<ImageView>(R.id.iv_add).setOnClickListener {
+                viewModel.onUiEvent(OnAddImageClickedEvent)
+            }
+
+            viewsContainer.findViewById<ImageView>(R.id.iv_remove).setOnClickListener {
+                viewModel.onUiEvent(OnRemoveImageClickedEvent)
+            }
+
+            viewsContainer.findViewById<ImageView>(R.id.iv_play).setOnClickListener {
+                viewModel.onUiEvent(OnPlayImageClickedEvent)
+            }
+
+            viewsContainer.findViewById<ImageView>(R.id.iv_pause).setOnClickListener {
+                viewModel.onUiEvent(OnPauseImageClickedEvent)
+            }
+
+            setUpActionBarDrag()
+            setUpMacroStateCollector()
+        }
+
+        fun macroStateChanged(macroState: MacroState) {
+            val playImage = viewsContainer.findViewById<ImageView>(R.id.iv_play)
+            val pauseImage = viewsContainer.findViewById<ImageView>(R.id.iv_pause)
+
+            if (macroState.isPlaying) {
+                playImage.visibility = View.GONE
+                pauseImage.visibility = View.VISIBLE
+            } else {
+                playImage.visibility = View.VISIBLE
+                pauseImage.visibility = View.GONE
+            }
+
+            wm.updateViewLayout(viewsContainer, params)
+        }
+
+        private fun setUpActionBarDrag() {
+            collectActionBarDragState()
+            setUpActionBarDragTouchListener()
+        }
+
+        private fun collectActionBarDragState() {
+            myApp.applicationScope.launch {
+                viewModel.actionBarStateFlow.collectLatest {
+                    withContext(Dispatchers.Main) {
+                        val dragState = it.dragState
+                        params.x = dragState.x
+                        params.y = dragState.y
+
+                        wm.updateViewLayout(viewsContainer, params)
+                    }
+                }
+            }
+        }
+
+        @SuppressLint("ClickableViewAccessibility") // todo check suppress
+        // https://stackoverflow.com/a/51361730
+        private fun setUpActionBarDragTouchListener() {
+            val root = viewsContainer.findViewById<LinearLayout>(R.id.root)
+            root.setOnTouchListener { view, event ->
+                when (event.action) {
+                    ACTION_DOWN -> {
+                        viewModel.onUiEvent(
+                            OnActionBarActionDownTouchEvent(
+                                actionDown = ActionDown(params.x, params.y, event.rawX, event.rawY)
+                            )
+                        )
+
+                        return@setOnTouchListener true
+                    }
+                    ACTION_MOVE -> {
+                        viewModel.onUiEvent(
+                            OnActionBarActionMoveTouchEvent(
+                                actionMove = ActionMove(event.rawX, event.rawY)
+                            )
+                        )
+
+                        return@setOnTouchListener true
+                    }
+                    else -> {
+                        return@setOnTouchListener false
+                    }
+                }
             }
         }
     }
