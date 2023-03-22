@@ -37,6 +37,7 @@ class ActionBarService : AccessibilityService() {
     @Inject
     lateinit var myApp: MyApp
 
+    private val clickPointsManager = ClickPointsManager()
     private val clickPointViewHolders = mutableListOf<ClickPointViewHolder>()
     private lateinit var viewsContainer: FrameLayout
 
@@ -49,7 +50,8 @@ class ActionBarService : AccessibilityService() {
         initScreenSize()
         createView()
         setUpView()
-        setUpClickPoints()
+
+        clickPointsManager.setUp()
     }
 
     override fun onCreate() {
@@ -85,143 +87,6 @@ class ActionBarService : AccessibilityService() {
         wm.addView(viewsContainer, params)
     }
 
-    private fun setUpClickPoints() {
-        myApp.applicationScope.launch {
-            viewModel.clickPointsStateFlow.collectLatest { clickPointsState ->
-                val clickPointList = clickPointsState.list
-
-                removeOldClickPoints(clickPointList, clickPointViewHolders)
-                addNewClickPoints(clickPointList, clickPointViewHolders)
-                updateChangedClickPoints(clickPointList, clickPointViewHolders)
-            }
-        }
-    }
-
-    private suspend fun updateChangedClickPoints(
-        clickPointList: List<ClickPoint>,
-        clickPointViewHolders: MutableList<ClickPointViewHolder>
-    ) {
-        clickPointList.forEach { clickPoint ->
-            clickPointViewHolders.find { clickPointView -> clickPointView.index == clickPoint.index }
-                ?.let { clickPointView ->
-                    if (clickPoint.dragState.x != clickPointView.params.x || clickPoint.dragState.y != clickPointView.params.y) {
-                        clickPointView.params.x = clickPoint.dragState.x
-                        clickPointView.params.y = clickPoint.dragState.y
-
-                        withContext(Dispatchers.Main) {
-                            wm.updateViewLayout(clickPointView.view, clickPointView.params)
-                        }
-                    }
-                }
-                ?: throw IllegalStateException("no click point view with index ${clickPoint.index}")
-        }
-    }
-
-    private suspend fun addNewClickPoints(
-        clickPointList: List<ClickPoint>,
-        clickPointViewHolders: MutableList<ClickPointViewHolder>
-    ) {
-        clickPointList.forEach { clickPoint ->
-            val find =
-                clickPointViewHolders.find { clickPointView -> clickPointView.index == clickPoint.index }
-
-            if (find == null) {
-                withContext(Dispatchers.Main) {
-                    val clickPointView = createClickPointView(clickPoint.index)
-
-                    wm.addView(clickPointView.view, clickPointView.params)
-
-                    clickPointViewHolders.add(clickPointView)
-                }
-            }
-        }
-    }
-
-    private suspend fun removeOldClickPoints(
-        clickPointList: List<ClickPoint>,
-        clickPointViewHolders: MutableList<ClickPointViewHolder>
-    ) {
-        clickPointViewHolders.forEach { clickPointView ->
-            val find =
-                clickPointList.find { clickPoint -> clickPoint.index == clickPointView.index }
-
-            if (find == null) {
-                withContext(Dispatchers.Main) {
-                    wm.removeView(clickPointView.view)
-
-                    clickPointViewHolders.remove(clickPointView)
-                }
-            }
-        }
-    }
-
-    private fun createClickPointView(index: Int): ClickPointViewHolder {
-        val view = FrameLayout(this)
-        val inflater = LayoutInflater.from(this)
-        inflater.inflate(R.layout.click_point, view)
-
-        val params = createWindowLayoutParams()
-        val clickPointViewHolder = ClickPointViewHolder(index = index, view = view, params = params)
-
-        setUpClickPointDragTouchListener(clickPointViewHolder)
-
-        return clickPointViewHolder
-    }
-
-    @SuppressLint("ClickableViewAccessibility") // todo check suppress
-    // https://stackoverflow.com/a/51361730
-    private fun setUpClickPointDragTouchListener(clickPointViewHolder: ClickPointViewHolder) {
-        val root = clickPointViewHolder.view.findViewById<FrameLayout>(R.id.root)
-
-        var moveActionHappened = false
-
-        root.setOnTouchListener { _, event ->
-            when (event.action) {
-                ACTION_DOWN -> {
-                    viewModel.onUiEvent(
-                        OnClickPointActionDownTouchEvent(
-                            index = clickPointViewHolder.index,
-                            actionDown = ActionDown(
-                                clickPointViewHolder.params.x,
-                                clickPointViewHolder.params.y,
-                                event.rawX,
-                                event.rawY
-                            )
-                        )
-                    )
-
-                    return@setOnTouchListener true
-                }
-                ACTION_MOVE -> {
-                    viewModel.onUiEvent(
-                        OnClickPointActionMoveTouchEvent(
-                            index = clickPointViewHolder.index,
-                            actionMove = ActionMove(event.rawX, event.rawY)
-                        )
-                    )
-
-                    moveActionHappened = true
-
-                    return@setOnTouchListener true
-                }
-                ACTION_UP -> {
-                    // trigger OnClick event only if ClickPoint was not moved
-                    if (!moveActionHappened) {
-                        viewModel.onUiEvent(OnClickPointClickEvent(clickPointViewHolder.index))
-                    }
-
-                    // reset the move Action happened flag
-                    moveActionHappened = false
-
-                    return@setOnTouchListener true
-                }
-                else -> {
-                    return@setOnTouchListener false
-                }
-            }
-        }
-    }
-
     private fun collectActions() {
         myApp.applicationScope.launch {
             viewModel.actionsSharedFlow.collectLatest {
@@ -231,35 +96,12 @@ class ActionBarService : AccessibilityService() {
                     }
                     is ActionBarServiceActions.PerformClickAction -> {
                         withContext(Dispatchers.Main) {
-                            setClickPointsTouchable(false)
-
-                            performClick(
-                                it.x.toFloat(),
-                                it.y.toFloat(),
-                                addClickPointsGestureCallback
-                            )
+                            clickPointsManager.performClick(it)
                         }
                     }
                 }
             }
         }
-    }
-
-    private fun setClickPointsTouchable(isTouchable: Boolean) {
-        clickPointViewHolders.forEach {
-            it.setTouchable(isTouchable)
-
-            wm.updateViewLayout(it.view, it.params)
-        }
-    }
-
-    private fun performClick(x: Float, y: Float, callback: GestureResultCallback) {
-        val path = Path()
-        path.moveTo(x, y)
-        val builder = GestureDescription.Builder()
-        // start time is set to 100 so click point has time to change params, todo check minimal start time
-        builder.addStroke(GestureDescription.StrokeDescription(path, 100, 1L))
-        dispatchGesture(builder.build(), callback, null)
     }
 
     private fun setUpView() {
@@ -370,17 +212,183 @@ class ActionBarService : AccessibilityService() {
         return lp
     }
 
-    private val addClickPointsGestureCallback = object : GestureResultCallback() {
-        override fun onCancelled(gestureDescription: GestureDescription?) {
-            super.onCancelled(gestureDescription)
+    inner class ClickPointsManager {
+        fun setUp() {
+            myApp.applicationScope.launch {
+                viewModel.clickPointsStateFlow.collectLatest { clickPointsState ->
+                    val clickPointList = clickPointsState.list
 
-            setClickPointsTouchable(true)
+                    removeOldClickPoints(clickPointList, clickPointViewHolders)
+                    addNewClickPoints(clickPointList, clickPointViewHolders)
+                    updateChangedClickPoints(clickPointList, clickPointViewHolders)
+                }
+            }
         }
 
-        override fun onCompleted(gestureDescription: GestureDescription?) {
-            super.onCompleted(gestureDescription)
+        fun performClick(clickAction: ActionBarServiceActions.PerformClickAction) {
+            setClickPointsTouchable(false)
 
-            setClickPointsTouchable(true)
+            performClick(
+                clickAction.x.toFloat(),
+                clickAction.y.toFloat(),
+                addClickPointsGestureCallback
+            )
+        }
+
+        private suspend fun updateChangedClickPoints(
+            clickPointList: List<ClickPoint>,
+            clickPointViewHolders: MutableList<ClickPointViewHolder>
+        ) {
+            clickPointList.forEach { clickPoint ->
+                clickPointViewHolders.find { clickPointView -> clickPointView.index == clickPoint.index }
+                    ?.let { clickPointView ->
+                        if (clickPoint.dragState.x != clickPointView.params.x || clickPoint.dragState.y != clickPointView.params.y) {
+                            clickPointView.params.x = clickPoint.dragState.x
+                            clickPointView.params.y = clickPoint.dragState.y
+
+                            withContext(Dispatchers.Main) {
+                                wm.updateViewLayout(clickPointView.view, clickPointView.params)
+                            }
+                        }
+                    }
+                    ?: throw IllegalStateException("no click point view with index ${clickPoint.index}")
+            }
+        }
+
+        private suspend fun addNewClickPoints(
+            clickPointList: List<ClickPoint>,
+            clickPointViewHolders: MutableList<ClickPointViewHolder>
+        ) {
+            clickPointList.forEach { clickPoint ->
+                val find =
+                    clickPointViewHolders.find { clickPointView -> clickPointView.index == clickPoint.index }
+
+                if (find == null) {
+                    withContext(Dispatchers.Main) {
+                        val clickPointView = createClickPointView(clickPoint.index)
+
+                        wm.addView(clickPointView.view, clickPointView.params)
+
+                        clickPointViewHolders.add(clickPointView)
+                    }
+                }
+            }
+        }
+
+        private suspend fun removeOldClickPoints(
+            clickPointList: List<ClickPoint>,
+            clickPointViewHolders: MutableList<ClickPointViewHolder>
+        ) {
+            clickPointViewHolders.forEach { clickPointView ->
+                val find =
+                    clickPointList.find { clickPoint -> clickPoint.index == clickPointView.index }
+
+                if (find == null) {
+                    withContext(Dispatchers.Main) {
+                        wm.removeView(clickPointView.view)
+
+                        clickPointViewHolders.remove(clickPointView)
+                    }
+                }
+            }
+        }
+
+        private fun createClickPointView(index: Int): ClickPointViewHolder {
+            val view = FrameLayout(this@ActionBarService)
+            val inflater = LayoutInflater.from(this@ActionBarService)
+            inflater.inflate(R.layout.click_point, view)
+
+            val params = createWindowLayoutParams()
+            val clickPointViewHolder = ClickPointViewHolder(index = index, view = view, params = params)
+
+            setUpClickPointDragTouchListener(clickPointViewHolder)
+
+            return clickPointViewHolder
+        }
+
+        @SuppressLint("ClickableViewAccessibility") // todo check suppress
+        // https://stackoverflow.com/a/51361730
+        private fun setUpClickPointDragTouchListener(clickPointViewHolder: ClickPointViewHolder) {
+            val root = clickPointViewHolder.view.findViewById<FrameLayout>(R.id.root)
+
+            var moveActionHappened = false
+
+            root.setOnTouchListener { _, event ->
+                when (event.action) {
+                    ACTION_DOWN -> {
+                        viewModel.onUiEvent(
+                            OnClickPointActionDownTouchEvent(
+                                index = clickPointViewHolder.index,
+                                actionDown = ActionDown(
+                                    clickPointViewHolder.params.x,
+                                    clickPointViewHolder.params.y,
+                                    event.rawX,
+                                    event.rawY
+                                )
+                            )
+                        )
+
+                        return@setOnTouchListener true
+                    }
+                    ACTION_MOVE -> {
+                        viewModel.onUiEvent(
+                            OnClickPointActionMoveTouchEvent(
+                                index = clickPointViewHolder.index,
+                                actionMove = ActionMove(event.rawX, event.rawY)
+                            )
+                        )
+
+                        moveActionHappened = true
+
+                        return@setOnTouchListener true
+                    }
+                    ACTION_UP -> {
+                        // trigger OnClick event only if ClickPoint was not moved
+                        if (!moveActionHappened) {
+                            viewModel.onUiEvent(OnClickPointClickEvent(clickPointViewHolder.index))
+                        }
+
+                        // reset the move Action happened flag
+                        moveActionHappened = false
+
+                        return@setOnTouchListener true
+                    }
+                    else -> {
+                        return@setOnTouchListener false
+                    }
+                }
+            }
+        }
+
+        private fun setClickPointsTouchable(isTouchable: Boolean) {
+            clickPointViewHolders.forEach {
+                it.setTouchable(isTouchable)
+
+                wm.updateViewLayout(it.view, it.params)
+            }
+        }
+
+        private fun performClick(x: Float, y: Float, callback: GestureResultCallback) {
+            val path = Path()
+            path.moveTo(x, y)
+            val builder = GestureDescription.Builder()
+            // start time is set to 100 so click point has time to change params, todo check minimal start time
+            builder.addStroke(GestureDescription.StrokeDescription(path, 100, 1L))
+            dispatchGesture(builder.build(), callback, null)
+        }
+
+        private val addClickPointsGestureCallback = object : GestureResultCallback() {
+            override fun onCancelled(gestureDescription: GestureDescription?) {
+                super.onCancelled(gestureDescription)
+
+                setClickPointsTouchable(true)
+            }
+
+            override fun onCompleted(gestureDescription: GestureDescription?) {
+                super.onCompleted(gestureDescription)
+
+                setClickPointsTouchable(true)
+            }
         }
     }
 }
