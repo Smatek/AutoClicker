@@ -22,7 +22,6 @@ import pl.skolimowski.autoclicker.R
 import pl.skolimowski.autoclicker.ui.UiEvent
 import pl.skolimowski.autoclicker.ui.action_bar.ActionBarServiceEvents.*
 import pl.skolimowski.autoclicker.ui.action_bar.DragEvents.*
-import timber.log.Timber
 
 // AFAIK there is no way to test UI of AccessibilityService.
 // There is method to test callbacks like onAccessibilityEvent presented in google samples
@@ -173,6 +172,9 @@ class ActionBarService : AccessibilityService() {
     // https://stackoverflow.com/a/51361730
     private fun setUpClickPointDragTouchListener(clickPointViewHolder: ClickPointViewHolder) {
         val root = clickPointViewHolder.view.findViewById<FrameLayout>(R.id.root)
+
+        var moveActionHappened = false
+
         root.setOnTouchListener { _, event ->
             when (event.action) {
                 ACTION_DOWN -> {
@@ -198,6 +200,19 @@ class ActionBarService : AccessibilityService() {
                         )
                     )
 
+                    moveActionHappened = true
+
+                    return@setOnTouchListener true
+                }
+                ACTION_UP -> {
+                    // trigger OnClick event only if ClickPoint was not moved
+                    if (!moveActionHappened) {
+                        viewModel.onUiEvent(OnClickPointClickEvent(clickPointViewHolder.index))
+                    }
+
+                    // reset the move Action happened flag
+                    moveActionHappened = false
+
                     return@setOnTouchListener true
                 }
                 else -> {
@@ -215,9 +230,6 @@ class ActionBarService : AccessibilityService() {
                         disableSelf()
                     }
                     is ActionBarServiceActions.PerformClickAction -> {
-                        Timber.i("PerformClickAction x: ${it.x} y: ${it.y}")
-                        Timber.i("PerformClickAction x: ${it.x.toFloat()} y: ${it.y.toFloat()}")
-
                         withContext(Dispatchers.Main) {
                             setClickPointsTouchable(false)
 
@@ -393,6 +405,7 @@ sealed class ActionBarServiceEvents : UiEvent() {
     object OnAddImageClickedEvent : ActionBarServiceEvents()
     object OnRemoveImageClickedEvent : ActionBarServiceEvents()
     object OnCloseImageClickedEvent : ActionBarServiceEvents()
+    class OnClickPointClickEvent(val index: Int) : ActionBarServiceEvents()
     class OnInitialScreenSizeEvent(val width: Int, val height: Int) : ActionBarServiceEvents()
     class OnActionBarActionDownTouchEvent(val actionDown: ActionDown) : ActionBarServiceEvents()
     class OnActionBarActionMoveTouchEvent(val actionMove: ActionMove) : ActionBarServiceEvents()

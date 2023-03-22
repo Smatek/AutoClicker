@@ -92,6 +92,8 @@ class ActionBarServiceViewModel @Inject constructor(
                     dragState = actionBarStateFlow.value.onActionMove(actionMove, viewSizes)
                 )
             }
+            is OnClickPointClickEvent -> {
+            }
             is OnClickPointActionDownTouchEvent -> {
                 clickPointsStateFlow.value.list.find { it.index == uiEvent.index }
                     ?.let { clickPoint ->
