@@ -1,10 +1,9 @@
 package pl.skolimowski.autoclicker.ui.action_bar
 
 import javax.inject.Inject
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import pl.skolimowski.autoclicker.MyApp
 import pl.skolimowski.autoclicker.R
@@ -34,12 +33,16 @@ class ActionBarServiceViewModel @Inject constructor(
     private val _actionsSharedFlow = MutableSharedFlow<ActionBarServiceActions>()
     val actionsSharedFlow: SharedFlow<ActionBarServiceActions> = _actionsSharedFlow
 
+    private val macroPlayer = MacroPlayer()
+
     var viewSizes: ViewSizes = ViewSizes()
 
     init {
         viewSizes = viewSizes.copy(
             clickPointSize = myApp.resources.getDimensionPixelSize(R.dimen.click_point_size)
         )
+
+        collectMacroStateChanges()
     }
 
     fun onUiEvent(uiEvent: UiEvent) {
@@ -52,34 +55,10 @@ class ActionBarServiceViewModel @Inject constructor(
                 )
             }
             is OnPlayImageClickedEvent -> {
-//                clickPointsStateFlow.value.list.firstOrNull()?.let { clickPoint ->
-//                    applicationScope.launch(dispatchers.io) {
-//                        Timber.i("OnPlayImageClickedEvent clickPoint: $clickPoint")
-//
-//                        val x = clickPoint.dragState.x + viewSizes.screenWidth / 2
-//                        val y = clickPoint.dragState.y + viewSizes.screenHeight / 2
-//
-//                        _actionsSharedFlow.emit(ActionBarServiceActions.PerformClickAction(x, y))
-//                    }
-//                }
-                // todo loop through clicks, create something like "macro config" it should contain
-                //  infinite / X times / for specified time like 5 min, delay between clicks
-                _macroStateFlow.value = macroStateFlow.value.copy(
-                    isPlaying = true,
-                    isStopped = false
-                )
+                _macroStateFlow.value = macroStateFlow.value.copy(isPlaying = true)
             }
             is OnPauseImageClickedEvent -> {
-                _macroStateFlow.value = macroStateFlow.value.copy(
-                    isPlaying = false,
-                    isStopped = false
-                )
-            }
-            is OnStopImageClickedEvent -> {
-                _macroStateFlow.value = macroStateFlow.value.copy(
-                    isPlaying = false,
-                    isStopped = true
-                )
+                _macroStateFlow.value = macroStateFlow.value.copy(isPlaying = false)
             }
             is OnAddImageClickedEvent -> {
                 val newClickPoint = clickPointsStateFlow.value.createNewClickPoint()
@@ -138,6 +117,20 @@ class ActionBarServiceViewModel @Inject constructor(
         }
     }
 
+    private fun collectMacroStateChanges() {
+        applicationScope.launch(dispatchers.io) {
+            macroStateFlow.collectLatest {
+                Timber.i("macroState changed to: $it")
+
+                if (it.isPlaying) {
+                    macroPlayer.play()
+                } else {
+                    macroPlayer.pause()
+                }
+            }
+        }
+    }
+
     private fun updateClickPoint(updatedClickPoint: ClickPoint) {
         Timber.i("updateClickPoint: $updatedClickPoint")
         val newList = clickPointsStateFlow.value.list.toMutableList()
@@ -148,11 +141,44 @@ class ActionBarServiceViewModel @Inject constructor(
             list = newList
         )
     }
+
+    private suspend fun performClick(clickPoint: ClickPoint) {
+        val x = clickPoint.dragState.x + viewSizes.screenWidth / 2
+        val y = clickPoint.dragState.y + viewSizes.screenHeight / 2
+
+        Timber.i("perform click at $x:$y")
+
+        _actionsSharedFlow.emit(ActionBarServiceActions.PerformClickAction(x, y))
+    }
+
+    inner class MacroPlayer {
+        var job: Job? = null
+
+        fun play() {
+            job = applicationScope.launch(dispatchers.io) {
+                val list = clickPointsStateFlow.value.list
+                list.forEach {
+                    performClick(it)
+
+                    delay(3000L)
+                }
+
+                finish()
+            }
+        }
+
+        fun pause() {
+            job?.cancel()
+        }
+
+        private fun finish() {
+            _macroStateFlow.value = macroStateFlow.value.copy(isPlaying = false)
+        }
+    }
 }
 
 data class MacroState(
-    val isPlaying: Boolean = false,
-    val isStopped: Boolean = true
+    val isPlaying: Boolean = false
 )
 
 data class ClickPointsState(

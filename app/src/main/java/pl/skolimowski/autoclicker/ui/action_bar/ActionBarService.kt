@@ -271,10 +271,6 @@ class ActionBarService : AccessibilityService() {
             viewModel.onUiEvent(OnPauseImageClickedEvent)
         }
 
-        viewsContainer.findViewById<ImageView>(R.id.iv_stop).setOnClickListener {
-            viewModel.onUiEvent(OnStopImageClickedEvent)
-        }
-
         setUpActionBarDrag()
         setUpMacroStateCollector()
     }
@@ -285,20 +281,13 @@ class ActionBarService : AccessibilityService() {
                 withContext(Dispatchers.Main) {
                     val playImage = viewsContainer.findViewById<ImageView>(R.id.iv_play)
                     val pauseImage = viewsContainer.findViewById<ImageView>(R.id.iv_pause)
-                    val stopImage = viewsContainer.findViewById<ImageView>(R.id.iv_stop)
 
-                    if (it.isStopped) {
-                        playImage.visibility = View.VISIBLE
-                        pauseImage.visibility = View.GONE
-                        stopImage.visibility = View.GONE
-                    } else if (it.isPlaying) {
+                    if (it.isPlaying) {
                         playImage.visibility = View.GONE
                         pauseImage.visibility = View.VISIBLE
-                        stopImage.visibility = View.VISIBLE
                     } else {
                         playImage.visibility = View.VISIBLE
                         pauseImage.visibility = View.GONE
-                        stopImage.visibility = View.VISIBLE
                     }
 
                     wm.updateViewLayout(viewsContainer, params)
@@ -401,7 +390,6 @@ data class ClickPointViewHolder(
 sealed class ActionBarServiceEvents : UiEvent() {
     object OnPlayImageClickedEvent : ActionBarServiceEvents()
     object OnPauseImageClickedEvent : ActionBarServiceEvents()
-    object OnStopImageClickedEvent : ActionBarServiceEvents()
     object OnAddImageClickedEvent : ActionBarServiceEvents()
     object OnRemoveImageClickedEvent : ActionBarServiceEvents()
     object OnCloseImageClickedEvent : ActionBarServiceEvents()
