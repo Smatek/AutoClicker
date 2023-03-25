@@ -577,4 +577,9 @@ class ActionBarServiceViewModelTest {
             assertThat(state.isPlaying).isEqualTo(false)
         }
     }
+
+    @Test
+    fun onUiEvent_OnConfigImageClickedEvent() = runTest {
+        // todo
+    }
 }

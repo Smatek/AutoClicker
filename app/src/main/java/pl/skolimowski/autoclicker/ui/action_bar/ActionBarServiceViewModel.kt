@@ -67,6 +67,11 @@ class ActionBarServiceViewModel @Inject constructor(
 
                 _clickPointsStateFlow.value = clickPointsStateFlow.value.copy(list = newList)
             }
+            is OnConfigImageClickedEvent -> {
+                applicationScope.launch(dispatchers.io) {
+                    _actionsSharedFlow.emit(ActionBarServiceActions.ShowConfigDialog)
+                }
+            }
             is OnRemoveImageClickedEvent -> {
                 val newList = clickPointsStateFlow.value.list.toMutableList()
                 newList.removeLastOrNull()
@@ -93,6 +98,7 @@ class ActionBarServiceViewModel @Inject constructor(
                 )
             }
             is OnClickPointClickEvent -> {
+                // todo emit action to show dialog that let user edit delay
             }
             is OnClickPointActionDownTouchEvent -> {
                 clickPointsStateFlow.value.list.find { it.index == uiEvent.index }
@@ -162,7 +168,7 @@ class ActionBarServiceViewModel @Inject constructor(
                 list.forEach {
                     performClick(it)
 
-                    delay(3000L)
+                    delay(it.delay)
                 }
 
                 finish()
@@ -195,7 +201,8 @@ data class ClickPointsState(
 
 data class ClickPoint(
     val index: Int = 0,
-    override val dragState: DragState = DragState()
+    override val dragState: DragState = DragState(),
+    val delay: Long = 1000L
 ) : Draggable()
 
 data class ActionBarState(

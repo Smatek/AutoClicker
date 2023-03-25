@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?><!--todo take whole screen space, show dialog normally but rest of the screen should be overlayed with alpha 20% gray-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black_alpha">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_margin="@dimen/padding_medium"
+        android:background="@color/white"
+        android:paddingHorizontal="@dimen/padding_medium"
+        android:paddingTop="@dimen/padding_medium">
+
+        <TextView
+            android:id="@+id/label_run_config"
+            style="@style/TextAppearance.Material3.TitleLarge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/label_run_config"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <RadioButton
+            android:id="@+id/rb_infinite"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/radio_infinite"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/label_run_config" />
+
+        <RadioButton
+            android:id="@+id/rb_cycles"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/radio_cycles_count"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/rb_infinite" />
+
+        <EditText
+            android:id="@+id/et_cycles"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="100dp"
+            app:layout_constraintBottom_toBottomOf="@id/rb_cycles"
+            app:layout_constraintLeft_toRightOf="@id/rb_cycles"
+            app:layout_constraintTop_toTopOf="@id/rb_cycles" />
+
+        <!--todo make it as outlined button-->
+        <TextView
+            android:id="@+id/tv_cancel"
+            style="@style/TextAppearance.Material3.LabelMedium"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="@dimen/padding_medium"
+            android:text="@string/cancel"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/rb_cycles" />
+
+        <!--todo make it as outlined button-->
+        <TextView
+            android:id="@+id/tv_save"
+            style="@style/TextAppearance.Material3.LabelMedium"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="@dimen/padding_medium"
+            android:text="@string/save"
+            app:layout_constraintRight_toLeftOf="@id/tv_cancel"
+            app:layout_constraintTop_toBottomOf="@id/rb_cycles" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</FrameLayout>

@@ -11,6 +11,7 @@ import android.view.accessibility.AccessibilityEvent
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.TextView
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +23,7 @@ import pl.skolimowski.autoclicker.R
 import pl.skolimowski.autoclicker.ui.UiEvent
 import pl.skolimowski.autoclicker.ui.action_bar.ActionBarServiceEvents.*
 import pl.skolimowski.autoclicker.ui.action_bar.DragEvents.*
+import timber.log.Timber
 
 // AFAIK there is no way to test UI of AccessibilityService.
 // There is method to test callbacks like onAccessibilityEvent presented in google samples
@@ -39,6 +41,7 @@ class ActionBarService : AccessibilityService() {
 
     private val actionBarManager = ActionBarManager()
     private val clickPointsManager = ClickPointsManager()
+    private val configWindowManager = ConfigWindowManager()
     private val clickPointViewHolders = mutableListOf<ClickPointViewHolder>()
 
     lateinit var wm: WindowManager
@@ -59,8 +62,8 @@ class ActionBarService : AccessibilityService() {
         collectActions()
     }
 
-    override fun onAccessibilityEvent(p0: AccessibilityEvent?) {
-        TODO("Not yet implemented")
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        Timber.i("onAccessibilityEvent: $event")
     }
 
     override fun onInterrupt() {
@@ -86,6 +89,11 @@ class ActionBarService : AccessibilityService() {
                     is ActionBarServiceActions.PerformClickAction -> {
                         withContext(Dispatchers.Main) {
                             clickPointsManager.performClick(it)
+                        }
+                    }
+                    is ActionBarServiceActions.ShowConfigDialog -> {
+                        withContext(Dispatchers.Main) {
+                            configWindowManager.show()
                         }
                     }
                 }
@@ -202,7 +210,8 @@ class ActionBarService : AccessibilityService() {
             inflater.inflate(R.layout.click_point, view)
 
             val params = createWindowLayoutParams()
-            val clickPointViewHolder = ClickPointViewHolder(index = index, view = view, params = params)
+            val clickPointViewHolder =
+                ClickPointViewHolder(index = index, view = view, params = params)
 
             setUpClickPointDragTouchListener(clickPointViewHolder)
 
@@ -330,6 +339,10 @@ class ActionBarService : AccessibilityService() {
                 viewModel.onUiEvent(OnPauseImageClickedEvent)
             }
 
+            viewsContainer.findViewById<ImageView>(R.id.iv_config).setOnClickListener {
+                viewModel.onUiEvent(OnConfigImageClickedEvent)
+            }
+
             setUpActionBarDrag()
             setUpMacroStateCollector()
         }
@@ -399,6 +412,44 @@ class ActionBarService : AccessibilityService() {
             }
         }
     }
+
+    // AlertDialogs and dialogFragments needs activity to be shown. Other option was activity
+    // displayed as an dialog, but the problem is that it is shown below action bar view.
+    // That is why config window is created as a view of ActionBarService
+    inner class ConfigWindowManager {
+        private lateinit var params: WindowManager.LayoutParams
+        private lateinit var configWindow: FrameLayout
+
+        fun show() {
+            configWindow = FrameLayout(this@ActionBarService)
+            val inflater = LayoutInflater.from(this@ActionBarService)
+            inflater.inflate(R.layout.dialog_config, configWindow)
+
+            params = createWindowLayoutParams()
+            params.width = WindowManager.LayoutParams.MATCH_PARENT
+            params.height = WindowManager.LayoutParams.MATCH_PARENT
+
+            wm.addView(configWindow, params)
+
+            setUpView()
+        }
+
+        fun dismiss() {
+            wm.removeView(configWindow)
+        }
+
+        private fun setUpView() {
+            configWindow.findViewById<TextView>(R.id.tv_save).setOnClickListener {
+                // todo send it to viewModel so it can decide what to do
+                dismiss()
+            }
+
+            configWindow.findViewById<TextView>(R.id.tv_cancel).setOnClickListener {
+                // todo send it to viewModel so it can decide what to do
+                dismiss()
+            }
+        }
+    }
 }
 
 data class ClickPointViewHolder(
@@ -418,6 +469,7 @@ data class ClickPointViewHolder(
 sealed class ActionBarServiceEvents : UiEvent() {
     object OnPlayImageClickedEvent : ActionBarServiceEvents()
     object OnPauseImageClickedEvent : ActionBarServiceEvents()
+    object OnConfigImageClickedEvent : ActionBarServiceEvents()
     object OnAddImageClickedEvent : ActionBarServiceEvents()
     object OnRemoveImageClickedEvent : ActionBarServiceEvents()
     object OnCloseImageClickedEvent : ActionBarServiceEvents()
@@ -439,5 +491,6 @@ sealed class DragEvents {
 
 sealed class ActionBarServiceActions {
     object OnDisableSelfAction : ActionBarServiceActions()
+    object ShowConfigDialog : ActionBarServiceActions()
     class PerformClickAction(val x: Int, val y: Int) : ActionBarServiceActions()
 }
