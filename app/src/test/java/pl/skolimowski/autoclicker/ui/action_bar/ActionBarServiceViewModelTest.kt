@@ -752,7 +752,7 @@ class ActionBarServiceViewModelTest {
             val action = awaitItem()
 
             assertThat(action).isInstanceOf(UpdateConfigDialog::class.java)
-            assertThat((action as UpdateConfigDialog).macroConfig.cyclesText).isEqualTo("123")
+            assertThat((action as UpdateConfigDialog).macroConfig.cycles).isEqualTo(123)
         }
     }
 

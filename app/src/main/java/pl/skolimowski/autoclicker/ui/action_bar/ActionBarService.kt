@@ -474,9 +474,9 @@ class ActionBarService : AccessibilityService() {
             cyclesRadioButton.isChecked = !isInfinite
 
             val selection = cyclesEditText.selectionStart
-            val cyclesText = macroConfig.cyclesText
+            val cyclesText = macroConfig.getCyclesText()
             cyclesEditText.setText(cyclesText)
-            cyclesEditText.error = if (macroConfig.cyclesValid) null else "invalid" // todo resource
+            cyclesEditText.error = if (macroConfig.isValid()) null else "invalid" // todo resource
 
             if (cyclesText.length >= selection) {
                 cyclesEditText.setSelection(selection)
@@ -524,8 +524,6 @@ class ActionBarService : AccessibilityService() {
                 val textAsString = text.toString()
 
                 if (textAsString != beforeTextChangedValue) {
-                    Timber.i("$textAsString - textAsString")
-                    Timber.i("$beforeTextChangedValue - beforeTextChangedValue")
                     viewModel.onUiEvent(OnCyclesCountTextChangedEvent(textAsString))
                 }
             }

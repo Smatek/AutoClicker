@@ -131,7 +131,8 @@ class ActionBarServiceViewModel @Inject constructor(
             }
             is OnCyclesCountTextChangedEvent -> {
                 applicationScope.launch(dispatchers.io) {
-                    tempConfig = tempConfig.copy(cyclesText = uiEvent.text)
+                    val cycles = MacroConfig.convertTextToCycle(uiEvent.text)
+                    tempConfig = tempConfig.copy(cycles = cycles)
 
                     _actionsSharedFlow.emit(UpdateConfigDialog(tempConfig))
                 }
@@ -210,11 +211,13 @@ class ActionBarServiceViewModel @Inject constructor(
             job = applicationScope.launch(dispatchers.io) {
                 val list = clickPointsStateFlow.value.list
 
-                for (i in 0 until macroConfig.getCyclesCount()) {
-                    list.forEach {
-                        performClick(it)
+                macroConfig.cycles?.let { cycles ->
+                    for (i in 0 until cycles) {
+                        list.forEach {
+                            performClick(it)
 
-                        delay(it.delay)
+                            delay(it.delay)
+                        }
                     }
                 }
 
@@ -234,26 +237,23 @@ class ActionBarServiceViewModel @Inject constructor(
 
 data class MacroConfig(
     val cycleMode: CycleMode = CycleMode.CYCLES_COUNT,
-    val cyclesText: String = "1",
+    val cycles: Int? = 1,
 ) {
-    val cyclesValid: Boolean = isCyclesTextValid()
-
-    // this method should only be used when cyclesValid is true, so it should always be usable when
-    // config is saved.
-    fun getCyclesCount(): Int {
-        return cyclesText.toInt()
-    }
-
     fun isValid(): Boolean {
-        return cycleMode == CycleMode.INFINITE || (cycleMode == CycleMode.CYCLES_COUNT && cyclesValid)
+        return cycleMode == CycleMode.INFINITE || (cycleMode == CycleMode.CYCLES_COUNT && cycles != null && cycles > 0)
     }
 
-    private fun isCyclesTextValid(): Boolean {
-        return try {
-            val value = cyclesText.toInt()
-            value > 0
-        } catch (e: NumberFormatException) {
-            false
+    fun getCyclesText(): String {
+        return cycles?.toString() ?: ""
+    }
+
+    companion object {
+        fun convertTextToCycle(text: String): Int? {
+            return if (text.isEmpty()) {
+                null
+            } else {
+                text.toInt()
+            }
         }
     }
 }
