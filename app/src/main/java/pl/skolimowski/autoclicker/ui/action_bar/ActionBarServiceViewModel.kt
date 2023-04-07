@@ -9,6 +9,7 @@ import pl.skolimowski.autoclicker.MyApp
 import pl.skolimowski.autoclicker.R
 import pl.skolimowski.autoclicker.ui.DispatcherProvider
 import pl.skolimowski.autoclicker.ui.UiEvent
+import pl.skolimowski.autoclicker.ui.action_bar.ActionBarServiceActions.*
 import pl.skolimowski.autoclicker.ui.action_bar.ActionBarServiceEvents.*
 import timber.log.Timber
 
@@ -34,6 +35,10 @@ class ActionBarServiceViewModel @Inject constructor(
     val actionsSharedFlow: SharedFlow<ActionBarServiceActions> = _actionsSharedFlow
 
     private val macroPlayer = MacroPlayer()
+    private var macroConfig = MacroConfig()
+
+    // var used to store state of config during showing dialog
+    private lateinit var tempConfig: MacroConfig
 
     var viewSizes: ViewSizes = ViewSizes()
 
@@ -69,7 +74,9 @@ class ActionBarServiceViewModel @Inject constructor(
             }
             is OnConfigImageClickedEvent -> {
                 applicationScope.launch(dispatchers.io) {
-                    _actionsSharedFlow.emit(ActionBarServiceActions.ShowConfigDialog)
+                    _actionsSharedFlow.emit(ShowConfigDialog(macroConfig))
+
+                    tempConfig = macroConfig
                 }
             }
             is OnRemoveImageClickedEvent -> {
@@ -80,7 +87,7 @@ class ActionBarServiceViewModel @Inject constructor(
             }
             is OnCloseImageClickedEvent -> {
                 applicationScope.launch(dispatchers.io) {
-                    _actionsSharedFlow.emit(ActionBarServiceActions.OnDisableSelfAction)
+                    _actionsSharedFlow.emit(OnDisableSelfAction)
                 }
             }
             is OnActionBarActionDownTouchEvent -> {
@@ -122,12 +129,49 @@ class ActionBarServiceViewModel @Inject constructor(
                         updateClickPoint(updatedClickPoint)
                     }
             }
+            is OnCyclesCountTextChangedEvent -> {
+                applicationScope.launch(dispatchers.io) {
+                    tempConfig = tempConfig.copy(cyclesText = uiEvent.text)
+
+                    _actionsSharedFlow.emit(UpdateConfigDialog(tempConfig))
+                }
+            }
+            is OnInfiniteRadioButtonCheckedEvent -> {
+                applicationScope.launch(dispatchers.io) {
+                    tempConfig = tempConfig.copy(cycleMode = CycleMode.INFINITE)
+
+                    _actionsSharedFlow.emit(UpdateConfigDialog(tempConfig))
+                }
+            }
+            is OnCyclesCountRadioButtonCheckedEvent -> {
+                applicationScope.launch(dispatchers.io) {
+                    tempConfig = tempConfig.copy(cycleMode = CycleMode.CYCLES_COUNT)
+
+                    _actionsSharedFlow.emit(UpdateConfigDialog(tempConfig))
+                }
+            }
+            is OnSaveConfigClickEvent -> {
+                applicationScope.launch(dispatchers.io) {
+                    val isValid = tempConfig.isValid()
+
+                    if (isValid) {
+                        macroConfig = tempConfig
+
+                        _actionsSharedFlow.emit(DismissConfigDialog)
+                    }
+                }
+            }
+            is OnCancelConfigClickEvent -> {
+                applicationScope.launch(dispatchers.io) {
+                    _actionsSharedFlow.emit(DismissConfigDialog)
+                }
+            }
         }
     }
 
     private fun collectMacroStateChanges() {
         applicationScope.launch(dispatchers.io) {
-            macroStateFlow.collectLatest {
+            macroStateFlow.collect {
                 Timber.i("macroState changed to: $it")
 
                 if (it.isPlaying) {
@@ -156,7 +200,7 @@ class ActionBarServiceViewModel @Inject constructor(
 
         Timber.i("perform click at $x:$y")
 
-        _actionsSharedFlow.emit(ActionBarServiceActions.PerformClickAction(x, y))
+        _actionsSharedFlow.emit(PerformClickAction(x, y))
     }
 
     inner class MacroPlayer {
@@ -165,10 +209,13 @@ class ActionBarServiceViewModel @Inject constructor(
         fun play() {
             job = applicationScope.launch(dispatchers.io) {
                 val list = clickPointsStateFlow.value.list
-                list.forEach {
-                    performClick(it)
 
-                    delay(it.delay)
+                for (i in 0 until macroConfig.getCyclesCount()) {
+                    list.forEach {
+                        performClick(it)
+
+                        delay(it.delay)
+                    }
                 }
 
                 finish()
@@ -183,6 +230,37 @@ class ActionBarServiceViewModel @Inject constructor(
             _macroStateFlow.value = macroStateFlow.value.copy(isPlaying = false)
         }
     }
+}
+
+data class MacroConfig(
+    val cycleMode: CycleMode = CycleMode.CYCLES_COUNT,
+    val cyclesText: String = "1",
+) {
+    val cyclesValid: Boolean = isCyclesTextValid()
+
+    // this method should only be used when cyclesValid is true, so it should always be usable when
+    // config is saved.
+    fun getCyclesCount(): Int {
+        return cyclesText.toInt()
+    }
+
+    fun isValid(): Boolean {
+        return cycleMode == CycleMode.INFINITE || (cycleMode == CycleMode.CYCLES_COUNT && cyclesValid)
+    }
+
+    private fun isCyclesTextValid(): Boolean {
+        return try {
+            val value = cyclesText.toInt()
+            value > 0
+        } catch (e: NumberFormatException) {
+            false
+        }
+    }
+}
+
+enum class CycleMode {
+    INFINITE,
+    CYCLES_COUNT
 }
 
 data class MacroState(

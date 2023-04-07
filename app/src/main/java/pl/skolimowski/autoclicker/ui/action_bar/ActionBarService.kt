@@ -5,13 +5,16 @@ import android.accessibilityservice.GestureDescription
 import android.annotation.SuppressLint
 import android.graphics.Path
 import android.graphics.PixelFormat
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.*
 import android.view.MotionEvent.*
 import android.view.accessibility.AccessibilityEvent
-import android.widget.FrameLayout
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.TextView
+import android.widget.*
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AlertDialog.Builder
+import androidx.appcompat.view.ContextThemeWrapper
+import com.google.android.material.textfield.TextInputEditText
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
@@ -21,6 +24,7 @@ import kotlinx.coroutines.withContext
 import pl.skolimowski.autoclicker.MyApp
 import pl.skolimowski.autoclicker.R
 import pl.skolimowski.autoclicker.ui.UiEvent
+import pl.skolimowski.autoclicker.ui.action_bar.ActionBarServiceActions.*
 import pl.skolimowski.autoclicker.ui.action_bar.ActionBarServiceEvents.*
 import pl.skolimowski.autoclicker.ui.action_bar.DragEvents.*
 import timber.log.Timber
@@ -83,17 +87,27 @@ class ActionBarService : AccessibilityService() {
         myApp.applicationScope.launch {
             viewModel.actionsSharedFlow.collectLatest {
                 when (it) {
-                    is ActionBarServiceActions.OnDisableSelfAction -> {
+                    is OnDisableSelfAction -> {
                         disableSelf()
                     }
-                    is ActionBarServiceActions.PerformClickAction -> {
+                    is PerformClickAction -> {
                         withContext(Dispatchers.Main) {
                             clickPointsManager.performClick(it)
                         }
                     }
-                    is ActionBarServiceActions.ShowConfigDialog -> {
+                    is ShowConfigDialog -> {
                         withContext(Dispatchers.Main) {
-                            configWindowManager.show()
+                            configWindowManager.show(it.macroConfig)
+                        }
+                    }
+                    is DismissConfigDialog -> {
+                        withContext(Dispatchers.Main) {
+                            configWindowManager.dismiss()
+                        }
+                    }
+                    is UpdateConfigDialog -> {
+                        withContext(Dispatchers.Main) {
+                            configWindowManager.updateView(it.macroConfig)
                         }
                     }
                 }
@@ -136,7 +150,7 @@ class ActionBarService : AccessibilityService() {
             }
         }
 
-        fun performClick(clickAction: ActionBarServiceActions.PerformClickAction) {
+        fun performClick(clickAction: PerformClickAction) {
             setClickPointsTouchable(false)
 
             performClick(
@@ -419,34 +433,105 @@ class ActionBarService : AccessibilityService() {
     inner class ConfigWindowManager {
         private lateinit var params: WindowManager.LayoutParams
         private lateinit var configWindow: FrameLayout
+        private lateinit var dialog: AlertDialog
 
-        fun show() {
-            configWindow = FrameLayout(this@ActionBarService)
-            val inflater = LayoutInflater.from(this@ActionBarService)
-            inflater.inflate(R.layout.dialog_config, configWindow)
+        private lateinit var infiniteRadioButton: RadioButton
+        private lateinit var cyclesRadioButton: RadioButton
+        private lateinit var saveTextView: TextView
+        private lateinit var cancelTextView: TextView
+        private lateinit var cyclesEditText: TextInputEditText
 
-            params = createWindowLayoutParams()
-            params.width = WindowManager.LayoutParams.MATCH_PARENT
-            params.height = WindowManager.LayoutParams.MATCH_PARENT
+        fun show(macroConfig: MacroConfig) {
+            val context = ContextThemeWrapper(this@ActionBarService, R.style.Theme_AutoClicker)
+            val inflater = LayoutInflater.from(context)
+            configWindow = inflater.inflate(R.layout.dialog_config, null) as FrameLayout
+            dialog = Builder(context)
+                .setView(configWindow)
+                .setCancelable(false)
+                .create()
 
-            wm.addView(configWindow, params)
+            dialog.window?.let { window ->
+                window.setType(WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY)
+                dialog.show()
+            }
 
-            setUpView()
+            findViews()
+            updateView(macroConfig)
         }
 
         fun dismiss() {
-            wm.removeView(configWindow)
+            dialog.dismiss()
         }
 
-        private fun setUpView() {
-            configWindow.findViewById<TextView>(R.id.tv_save).setOnClickListener {
-                // todo send it to viewModel so it can decide what to do
-                dismiss()
+        fun updateView(macroConfig: MacroConfig) {
+            // reset listeners so they are not affected by setting value here
+            infiniteRadioButton.setOnCheckedChangeListener(null)
+            cyclesRadioButton.setOnCheckedChangeListener(null)
+            cyclesEditText.removeTextChangedListener(cyclesCountTextWatcher)
+
+            val isInfinite = macroConfig.cycleMode == CycleMode.INFINITE
+            infiniteRadioButton.isChecked = isInfinite
+            cyclesRadioButton.isChecked = !isInfinite
+
+            val selection = cyclesEditText.selectionStart
+            val cyclesText = macroConfig.cyclesText
+            cyclesEditText.setText(cyclesText)
+            cyclesEditText.error = if (macroConfig.cyclesValid) null else "invalid" // todo resource
+
+            if (cyclesText.length >= selection) {
+                cyclesEditText.setSelection(selection)
             }
 
-            configWindow.findViewById<TextView>(R.id.tv_cancel).setOnClickListener {
-                // todo send it to viewModel so it can decide what to do
-                dismiss()
+            infiniteRadioButton.setOnCheckedChangeListener(infiniteRadioButtonCheckListener)
+            cyclesRadioButton.setOnCheckedChangeListener(cyclesRadioButtonCheckListener)
+            saveTextView.setOnClickListener(saveClickListener)
+            cancelTextView.setOnClickListener(cancelClickListener)
+            cyclesEditText.addTextChangedListener(cyclesCountTextWatcher)
+        }
+
+        private fun findViews() {
+            infiniteRadioButton = configWindow.findViewById(R.id.rb_infinite)
+            cyclesRadioButton = configWindow.findViewById(R.id.rb_cycles)
+            saveTextView = configWindow.findViewById(R.id.tv_save)
+            cancelTextView = configWindow.findViewById(R.id.tv_cancel)
+            cyclesEditText = configWindow.findViewById(R.id.et_cycles)
+        }
+
+        private val saveClickListener = View.OnClickListener {
+            viewModel.onUiEvent(OnSaveConfigClickEvent)
+        }
+
+        private val cancelClickListener = View.OnClickListener {
+            viewModel.onUiEvent(OnCancelConfigClickEvent)
+        }
+
+        private val infiniteRadioButtonCheckListener: (CompoundButton, Boolean) -> Unit = { _, _ ->
+            viewModel.onUiEvent(OnInfiniteRadioButtonCheckedEvent)
+        }
+
+        private val cyclesRadioButtonCheckListener: (CompoundButton, Boolean) -> Unit = { _, _ ->
+            viewModel.onUiEvent(OnCyclesCountRadioButtonCheckedEvent)
+        }
+
+        private val cyclesCountTextWatcher = object : TextWatcher {
+            lateinit var beforeTextChangedValue: String
+
+            override fun beforeTextChanged(text: CharSequence, p1: Int, p2: Int, p3: Int) {
+                beforeTextChangedValue = text.toString()
+            }
+
+            override fun onTextChanged(text: CharSequence, p1: Int, p2: Int, p3: Int) {
+                val textAsString = text.toString()
+
+                if (textAsString != beforeTextChangedValue) {
+                    Timber.i("$textAsString - textAsString")
+                    Timber.i("$beforeTextChangedValue - beforeTextChangedValue")
+                    viewModel.onUiEvent(OnCyclesCountTextChangedEvent(textAsString))
+                }
+            }
+
+            override fun afterTextChanged(p0: Editable?) {
+                // empty
             }
         }
     }
@@ -482,6 +567,12 @@ sealed class ActionBarServiceEvents : UiEvent() {
 
     class OnClickPointActionMoveTouchEvent(val index: Int, val actionMove: ActionMove) :
         ActionBarServiceEvents()
+
+    object OnInfiniteRadioButtonCheckedEvent : ActionBarServiceEvents()
+    object OnCyclesCountRadioButtonCheckedEvent : ActionBarServiceEvents()
+    class OnCyclesCountTextChangedEvent(val text: String) : ActionBarServiceEvents()
+    object OnCancelConfigClickEvent : ActionBarServiceEvents()
+    object OnSaveConfigClickEvent : ActionBarServiceEvents()
 }
 
 sealed class DragEvents {
@@ -491,6 +582,8 @@ sealed class DragEvents {
 
 sealed class ActionBarServiceActions {
     object OnDisableSelfAction : ActionBarServiceActions()
-    object ShowConfigDialog : ActionBarServiceActions()
+    class ShowConfigDialog(val macroConfig: MacroConfig) : ActionBarServiceActions()
+    class UpdateConfigDialog(val macroConfig: MacroConfig) : ActionBarServiceActions()
+    object DismissConfigDialog : ActionBarServiceActions()
     class PerformClickAction(val x: Int, val y: Int) : ActionBarServiceActions()
 }

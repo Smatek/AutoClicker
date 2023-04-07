@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?><!--todo take whole screen space, show dialog normally but rest of the screen should be overlayed with alpha 20% gray-->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/black_alpha">
+    android:layout_height="match_parent">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
@@ -39,36 +39,56 @@
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintTop_toBottomOf="@id/rb_infinite" />
 
-        <EditText
-            android:id="@+id/et_cycles"
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_cycles"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/padding_medium"
             android:minWidth="100dp"
+            app:errorEnabled="true"
             app:layout_constraintBottom_toBottomOf="@id/rb_cycles"
             app:layout_constraintLeft_toRightOf="@id/rb_cycles"
-            app:layout_constraintTop_toTopOf="@id/rb_cycles" />
+            app:layout_constraintTop_toTopOf="@id/rb_cycles">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_cycles"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:inputType="number"
+                tools:text="1" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <androidx.constraintlayout.widget.Barrier
+            android:id="@+id/barrier_cycles"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:barrierDirection="bottom"
+            app:constraint_referenced_ids="rb_cycles,til_cycles" />
 
         <!--todo make it as outlined button-->
         <TextView
             android:id="@+id/tv_cancel"
-            style="@style/TextAppearance.Material3.LabelMedium"
+            style="@style/TextAppearance.Material3.LabelLarge"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:padding="@dimen/padding_medium"
             android:text="@string/cancel"
             app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/rb_cycles" />
+            app:layout_constraintTop_toBottomOf="@id/barrier_cycles" />
 
         <!--todo make it as outlined button-->
         <TextView
             android:id="@+id/tv_save"
-            style="@style/TextAppearance.Material3.LabelMedium"
+            style="@style/TextAppearance.Material3.LabelLarge"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:padding="@dimen/padding_medium"
             android:text="@string/save"
             app:layout_constraintRight_toLeftOf="@id/tv_cancel"
-            app:layout_constraintTop_toBottomOf="@id/rb_cycles" />
+            app:layout_constraintTop_toBottomOf="@id/barrier_cycles" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </FrameLayout>
