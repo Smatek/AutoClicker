@@ -40,6 +40,9 @@ class ActionBarServiceViewModel @Inject constructor(
     // var used to store state of config during showing dialog
     private lateinit var tempConfig: MacroConfig
 
+    // var used to store state of config during showing dialog
+    private lateinit var tempClickPointConfigState: ClickPointConfigState
+
     var viewSizes: ViewSizes = ViewSizes()
 
     init {
@@ -105,7 +108,48 @@ class ActionBarServiceViewModel @Inject constructor(
                 )
             }
             is OnClickPointClickEvent -> {
-                // todo emit action to show dialog that let user edit delay
+                applicationScope.launch(dispatchers.io) {
+                    clickPointsStateFlow.value.list.find { it.index == uiEvent.index }
+                        ?.let { clickPoint ->
+                            tempClickPointConfigState =
+                                ClickPointConfigState(
+                                    delay = clickPoint.delay.toString(),
+                                    clickPoint = clickPoint
+                                )
+
+                            _actionsSharedFlow.emit(
+                                ShowClickPointConfigDialogAction(tempClickPointConfigState)
+                            )
+                        }
+                }
+            }
+            is OnDelayTextChangedEvent -> {
+                applicationScope.launch(dispatchers.io) {
+                    tempClickPointConfigState = tempClickPointConfigState.copy(delay = uiEvent.text)
+
+                    _actionsSharedFlow.emit(
+                        UpdateClickPointConfigDialogAction(tempClickPointConfigState)
+                    )
+                }
+            }
+            is OnCancelClickPointConfigClickEvent -> {
+                applicationScope.launch(dispatchers.io) {
+                    _actionsSharedFlow.emit(DismissClickPointConfigDialogAction)
+                }
+            }
+            is OnSaveClickPointConfigClickEvent -> {
+                applicationScope.launch(dispatchers.io) {
+                    val isValid = tempClickPointConfigState.isValid()
+
+                    if (isValid) {
+                        val updatedClickPoint = tempClickPointConfigState.clickPoint.copy(
+                            delay = tempClickPointConfigState.delay.toLong()
+                        )
+                        updateClickPoint(updatedClickPoint)
+
+                        _actionsSharedFlow.emit(DismissClickPointConfigDialogAction)
+                    }
+                }
             }
             is OnClickPointActionDownTouchEvent -> {
                 clickPointsStateFlow.value.list.find { it.index == uiEvent.index }
@@ -190,9 +234,7 @@ class ActionBarServiceViewModel @Inject constructor(
         val indexOfFirst = newList.indexOfFirst { it.index == updatedClickPoint.index }
         newList[indexOfFirst] = updatedClickPoint
 
-        _clickPointsStateFlow.value = clickPointsStateFlow.value.copy(
-            list = newList
-        )
+        _clickPointsStateFlow.value = clickPointsStateFlow.value.copy(list = newList)
     }
 
     private suspend fun performClick(clickPoint: ClickPoint) {
@@ -274,6 +316,15 @@ data class ClickPointsState(
         val highestIdValue = list.maxOfOrNull { it.index } ?: 0
 
         return ClickPoint(highestIdValue + 1)
+    }
+}
+
+data class ClickPointConfigState(
+    val delay: String = "",
+    val clickPoint: ClickPoint
+) {
+    fun isValid(): Boolean {
+        return delay.isNotEmpty() && delay.toLong() > 0
     }
 }
 

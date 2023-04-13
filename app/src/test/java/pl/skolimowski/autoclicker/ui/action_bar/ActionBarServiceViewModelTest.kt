@@ -492,7 +492,83 @@ class ActionBarServiceViewModelTest {
 
     @Test
     fun onUiEvent_OnClickPointClickEvent() = runTest {
-        // todo
+        viewModel.onUiEvent(OnAddImageClickedEvent)
+
+        viewModel.actionsSharedFlow.test {
+            viewModel.onUiEvent(OnClickPointClickEvent(index = 1))
+
+            val action = awaitItem()
+
+            assertThat(action).isInstanceOf(ShowClickPointConfigDialogAction::class.java)
+            assertThat((action as ShowClickPointConfigDialogAction).clickPointConfigState)
+                .isEqualTo(
+                    ClickPointConfigState(
+                        delay = "1000",
+                        clickPoint = ClickPoint(index = 1)
+                    )
+                )
+        }
+    }
+
+    @Test
+    fun onUiEvent_OnDelayTextChangedEvent() = runTest {
+        viewModel.onUiEvent(OnAddImageClickedEvent)
+        viewModel.onUiEvent(OnClickPointClickEvent(index = 1))
+
+        viewModel.actionsSharedFlow.test {
+            viewModel.onUiEvent(OnDelayTextChangedEvent(text = "100"))
+
+            val action = awaitItem()
+
+            assertThat(action).isInstanceOf(UpdateClickPointConfigDialogAction::class.java)
+            assertThat((action as UpdateClickPointConfigDialogAction).clickPointConfigState.delay)
+                .isEqualTo("100")
+        }
+    }
+
+    @Test
+    fun onUiEvent_OnCancelClickPointConfigClickEvent() = runTest {
+        viewModel.actionsSharedFlow.test {
+            viewModel.onUiEvent(OnCancelClickPointConfigClickEvent)
+
+            val action = awaitItem()
+
+            assertThat(action).isInstanceOf(DismissClickPointConfigDialogAction::class.java)
+        }
+    }
+
+    @Test
+    fun onUiEvent_OnSaveClickPointConfigClickEvent_isValid_true() = runTest {
+        viewModel.onUiEvent(OnAddImageClickedEvent)
+        viewModel.onUiEvent(OnClickPointClickEvent(index = 1))
+        viewModel.onUiEvent(OnDelayTextChangedEvent(text = "100"))
+
+        viewModel.actionsSharedFlow.test {
+            viewModel.onUiEvent(OnSaveClickPointConfigClickEvent)
+
+            viewModel.clickPointsStateFlow.test {
+                val clickPointsState = awaitItem()
+
+                assertThat(clickPointsState.list[0].delay).isEqualTo(100L)
+            }
+
+            val action = awaitItem()
+
+            assertThat(action).isInstanceOf(DismissClickPointConfigDialogAction::class.java)
+        }
+    }
+
+    @Test
+    fun onUiEvent_OnSaveClickPointConfigClickEvent_isValid_false() = runTest {
+        viewModel.onUiEvent(OnAddImageClickedEvent)
+        viewModel.onUiEvent(OnClickPointClickEvent(index = 1))
+        viewModel.onUiEvent(OnDelayTextChangedEvent(text = "0"))
+
+        viewModel.actionsSharedFlow.test {
+            viewModel.onUiEvent(OnSaveClickPointConfigClickEvent)
+
+            expectNoEvents()
+        }
     }
 
     @Test

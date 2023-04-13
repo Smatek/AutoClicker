@@ -15,4 +15,7 @@
     <string name="radio_cycles_count">cycles count: </string>
     <string name="cancel">cancel</string>
     <string name="save">save</string>
+    <string name="label_click_point_config">click point config</string>
+    <string name="label_delay">set delay that will happen after clicking selected click point</string>
+    <string name="label_delay_unit">ms</string>
 </resources>
