@@ -241,9 +241,15 @@ class ActionBarService : AccessibilityService() {
             val clickPointViewHolder =
                 ClickPointViewHolder(index = index, view = view, params = params)
 
+            setClickPointIndex(clickPointViewHolder)
             setUpClickPointDragTouchListener(clickPointViewHolder)
 
             return clickPointViewHolder
+        }
+
+        private fun setClickPointIndex(clickPointViewHolder: ClickPointViewHolder) {
+            val textView = clickPointViewHolder.view.findViewById<TextView>(R.id.tv_click_point)
+            textView.text = clickPointViewHolder.index.toString()
         }
 
         @SuppressLint("ClickableViewAccessibility") // todo check suppress
@@ -511,7 +517,8 @@ class ActionBarService : AccessibilityService() {
         }
     }
 
-    inner class ClickPointConfigWindowManager : ConfigWindowManager(R.layout.dialog_click_point_config) {
+    inner class ClickPointConfigWindowManager :
+        ConfigWindowManager(R.layout.dialog_click_point_config) {
         private lateinit var saveTextView: TextView
         private lateinit var cancelTextView: TextView
         private lateinit var delayEditText: TextInputEditText
@@ -529,7 +536,8 @@ class ActionBarService : AccessibilityService() {
             val selection = delayEditText.selectionStart
             val delayText = clickPointConfigState.delay
             delayEditText.setText(delayText)
-            delayEditText.error = if (clickPointConfigState.isValid()) null else "invalid" // todo resource
+            delayEditText.error =
+                if (clickPointConfigState.isValid()) null else "invalid" // todo resource
 
             if (delayText.length >= selection) {
                 delayEditText.setSelection(selection)
@@ -646,7 +654,11 @@ sealed class ActionBarServiceActions {
     class UpdateConfigDialog(val macroConfig: MacroConfig) : ActionBarServiceActions()
     object DismissConfigDialog : ActionBarServiceActions()
     class PerformClickAction(val x: Int, val y: Int) : ActionBarServiceActions()
-    class ShowClickPointConfigDialogAction(val clickPointConfigState: ClickPointConfigState) : ActionBarServiceActions()
-    class UpdateClickPointConfigDialogAction(val clickPointConfigState: ClickPointConfigState) : ActionBarServiceActions()
+    class ShowClickPointConfigDialogAction(val clickPointConfigState: ClickPointConfigState) :
+        ActionBarServiceActions()
+
+    class UpdateClickPointConfigDialogAction(val clickPointConfigState: ClickPointConfigState) :
+        ActionBarServiceActions()
+
     object DismissClickPointConfigDialogAction : ActionBarServiceActions()
 }

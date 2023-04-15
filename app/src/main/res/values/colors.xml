@@ -11,4 +11,5 @@
 
     <color name="divideLine">#25000000</color>
     <color name="textColor">#ff000000</color>
+    <color name="click_point_stroke">#FF000000</color>
 </resources>
