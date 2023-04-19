@@ -75,10 +75,9 @@ class ActionBarService : AccessibilityService() {
 
     private fun initScreenSize() {
         val windowMetrics = wm.currentWindowMetrics
-        val windowInsets = windowMetrics.windowInsets
-            .getInsetsIgnoringVisibility(0)
-        val width = windowMetrics.bounds.width() - windowInsets.left - windowInsets.right
-        val height = windowMetrics.bounds.height() - windowInsets.top - windowInsets.bottom
+        val width = windowMetrics.bounds.width()
+        val height = windowMetrics.bounds.height()
+
         viewModel.onUiEvent(OnInitialScreenSizeEvent(width = width, height = height))
     }
 
@@ -144,7 +143,9 @@ class ActionBarService : AccessibilityService() {
 
         lp.type = WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
         lp.format = PixelFormat.TRANSLUCENT
-        lp.flags = lp.flags or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+        lp.flags = lp.flags or
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
         lp.width = WindowManager.LayoutParams.WRAP_CONTENT
         lp.height = WindowManager.LayoutParams.WRAP_CONTENT
 
