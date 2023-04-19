@@ -5,4 +5,6 @@
     <stroke android:color="@color/click_point_stroke"
         android:width="@dimen/click_point_stroke"/>
 
+    <solid android:color="@color/click_point_fill"/>
+
 </shape>
