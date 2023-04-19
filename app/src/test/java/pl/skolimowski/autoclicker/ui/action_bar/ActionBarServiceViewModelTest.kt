@@ -10,7 +10,6 @@ import kotlinx.coroutines.test.*
 import org.junit.Before
 import org.junit.Test
 import pl.skolimowski.autoclicker.MyApp
-import pl.skolimowski.autoclicker.R
 import pl.skolimowski.autoclicker.test_util.StandardTestDispatcher
 import pl.skolimowski.autoclicker.test_util.TestDispatchers
 import pl.skolimowski.autoclicker.test_util.UnconfinedTestDispatcher
@@ -310,8 +309,6 @@ class ActionBarServiceViewModelTest {
 
     @Test
     fun onUiEvent_OnActionBarActionMoveTouchEvent_x() = runTest {
-        every { applicationMock.resources.getDimensionPixelSize(R.dimen.click_point_size) } returns 2
-
         (viewModel.actionBarStateFlow as MutableStateFlow).value = ActionBarState(
             dragState = DragState(
                 initialX = 1,
@@ -339,8 +336,6 @@ class ActionBarServiceViewModelTest {
 
     @Test
     fun onUiEvent_OnActionBarActionMoveTouchEvent_x_outsideLeftBound() = runTest {
-        every { applicationMock.resources.getDimensionPixelSize(R.dimen.click_point_size) } returns 2
-
         viewModel = createViewModel()
 
         (viewModel.actionBarStateFlow as MutableStateFlow).value = ActionBarState(
@@ -355,7 +350,7 @@ class ActionBarServiceViewModelTest {
         viewModel.onUiEvent(
             OnActionBarActionMoveTouchEvent(
                 actionMove = DragEvents.ActionMove(
-                    rawX = -4f,
+                    rawX = -8f,
                     rawY = 0f
                 )
             )
@@ -364,14 +359,12 @@ class ActionBarServiceViewModelTest {
         viewModel.actionBarStateFlow.test {
             val state = awaitItem()
 
-            assertThat(state.dragState.x).isEqualTo(-4)
+            assertThat(state.dragState.x).isEqualTo(-5)
         }
     }
 
     @Test
     fun onUiEvent_OnActionBarActionMoveTouchEvent_x_outsideRightBound() = runTest {
-        every { applicationMock.resources.getDimensionPixelSize(R.dimen.click_point_size) } returns 2
-
         viewModel = createViewModel()
 
         (viewModel.actionBarStateFlow as MutableStateFlow).value = ActionBarState(
@@ -395,14 +388,12 @@ class ActionBarServiceViewModelTest {
         viewModel.actionBarStateFlow.test {
             val state = awaitItem()
 
-            assertThat(state.dragState.x).isEqualTo(4)
+            assertThat(state.dragState.x).isEqualTo(5)
         }
     }
 
     @Test
     fun onUiEvent_OnActionBarActionMoveTouchEvent_y() = runTest {
-        every { applicationMock.resources.getDimensionPixelSize(R.dimen.click_point_size) } returns 2
-
         (viewModel.actionBarStateFlow as MutableStateFlow).value = ActionBarState(
             dragState = DragState(
                 initialY = 1,
@@ -430,8 +421,6 @@ class ActionBarServiceViewModelTest {
 
     @Test
     fun onUiEvent_OnActionBarActionMoveTouchEvent_y_outsideTopBound() = runTest {
-        every { applicationMock.resources.getDimensionPixelSize(R.dimen.click_point_size) } returns 2
-
         viewModel = createViewModel()
 
         (viewModel.actionBarStateFlow as MutableStateFlow).value = ActionBarState(
@@ -447,7 +436,7 @@ class ActionBarServiceViewModelTest {
             OnActionBarActionMoveTouchEvent(
                 actionMove = DragEvents.ActionMove(
                     rawX = 0f,
-                    rawY = -4f
+                    rawY = -8f
                 )
             )
         )
@@ -455,14 +444,12 @@ class ActionBarServiceViewModelTest {
         viewModel.actionBarStateFlow.test {
             val state = awaitItem()
 
-            assertThat(state.dragState.y).isEqualTo(-4)
+            assertThat(state.dragState.y).isEqualTo(-5)
         }
     }
 
     @Test
     fun onUiEvent_OnActionBarActionMoveTouchEvent_y_outsideBottomBound() = runTest {
-        every { applicationMock.resources.getDimensionPixelSize(R.dimen.click_point_size) } returns 2
-
         viewModel = createViewModel()
 
         (viewModel.actionBarStateFlow as MutableStateFlow).value = ActionBarState(
@@ -486,7 +473,7 @@ class ActionBarServiceViewModelTest {
         viewModel.actionBarStateFlow.test {
             val state = awaitItem()
 
-            assertThat(state.dragState.y).isEqualTo(4)
+            assertThat(state.dragState.y).isEqualTo(5)
         }
     }
 
@@ -602,8 +589,6 @@ class ActionBarServiceViewModelTest {
 
     @Test
     fun onUiEvent_OnClickPointActionMoveTouchEvent_x() = runTest {
-        every { applicationMock.resources.getDimensionPixelSize(R.dimen.click_point_size) } returns 2
-
         (viewModel.clickPointsStateFlow as MutableStateFlow).value = ClickPointsState(
             listOf(
                 ClickPoint(
@@ -637,8 +622,6 @@ class ActionBarServiceViewModelTest {
 
     @Test
     fun onUiEvent_OnClickPointActionMoveTouchEvent_x_outsideLeftBound() = runTest {
-        every { applicationMock.resources.getDimensionPixelSize(R.dimen.click_point_size) } returns 2
-
         viewModel = createViewModel()
 
         (viewModel.clickPointsStateFlow as MutableStateFlow).value = ClickPointsState(
@@ -659,7 +642,7 @@ class ActionBarServiceViewModelTest {
             OnClickPointActionMoveTouchEvent(
                 index = 1,
                 actionMove = DragEvents.ActionMove(
-                    rawX = -4f,
+                    rawX = -8f,
                     rawY = 0f
                 )
             )
@@ -668,14 +651,12 @@ class ActionBarServiceViewModelTest {
         viewModel.clickPointsStateFlow.test {
             val state = awaitItem()
 
-            assertThat(state.list[0].dragState.x).isEqualTo(-4)
+            assertThat(state.list[0].dragState.x).isEqualTo(-5)
         }
     }
 
     @Test
     fun onUiEvent_OnClickPointActionMoveTouchEvent_x_outsideRightBound() = runTest {
-        every { applicationMock.resources.getDimensionPixelSize(R.dimen.click_point_size) } returns 2
-
         viewModel = createViewModel()
 
         (viewModel.clickPointsStateFlow as MutableStateFlow).value = ClickPointsState(
@@ -705,14 +686,12 @@ class ActionBarServiceViewModelTest {
         viewModel.clickPointsStateFlow.test {
             val state = awaitItem()
 
-            assertThat(state.list[0].dragState.x).isEqualTo(4)
+            assertThat(state.list[0].dragState.x).isEqualTo(5)
         }
     }
 
     @Test
     fun onUiEvent_OnClickPointActionMoveTouchEvent_y() = runTest {
-        every { applicationMock.resources.getDimensionPixelSize(R.dimen.click_point_size) } returns 2
-
         (viewModel.clickPointsStateFlow as MutableStateFlow).value = ClickPointsState(
             listOf(
                 ClickPoint(
@@ -746,8 +725,6 @@ class ActionBarServiceViewModelTest {
 
     @Test
     fun onUiEvent_OnClickPointActionMoveTouchEvent_y_outsideTopBound() = runTest {
-        every { applicationMock.resources.getDimensionPixelSize(R.dimen.click_point_size) } returns 2
-
         viewModel = createViewModel()
 
         (viewModel.clickPointsStateFlow as MutableStateFlow).value = ClickPointsState(
@@ -769,7 +746,7 @@ class ActionBarServiceViewModelTest {
                 index = 1,
                 actionMove = DragEvents.ActionMove(
                     rawX = 0f,
-                    rawY = -4f
+                    rawY = -8f
                 )
             )
         )
@@ -777,14 +754,12 @@ class ActionBarServiceViewModelTest {
         viewModel.clickPointsStateFlow.test {
             val state = awaitItem()
 
-            assertThat(state.list[0].dragState.y).isEqualTo(-4)
+            assertThat(state.list[0].dragState.y).isEqualTo(-5)
         }
     }
 
     @Test
     fun onUiEvent_OnClickPointActionMoveTouchEvent_y_outsideUpperBound() = runTest {
-        every { applicationMock.resources.getDimensionPixelSize(R.dimen.click_point_size) } returns 2
-
         viewModel = createViewModel()
 
         (viewModel.clickPointsStateFlow as MutableStateFlow).value = ClickPointsState(
@@ -814,7 +789,7 @@ class ActionBarServiceViewModelTest {
         viewModel.clickPointsStateFlow.test {
             val state = awaitItem()
 
-            assertThat(state.list[0].dragState.y).isEqualTo(4)
+            assertThat(state.list[0].dragState.y).isEqualTo(5)
         }
     }
 
