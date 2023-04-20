@@ -63,6 +63,9 @@ class ActionBarServiceViewModelTest {
         viewModel.actionsSharedFlow.test {
             viewModel.onUiEvent(OnPlayImageClickedEvent)
 
+            scheduler.runCurrent() // run first coroutine to change macroState
+            assertThat(viewModel.actionBarStateFlow.value.isPlaying).isEqualTo(true)
+
             scheduler.advanceUntilIdle()
 
             val action1 = awaitItem() as PerformClickAction
@@ -72,6 +75,8 @@ class ActionBarServiceViewModelTest {
             assertThat(action1.y).isEqualTo(2)
             assertThat(action2.x).isEqualTo(3)
             assertThat(action2.y).isEqualTo(4)
+
+            assertThat(viewModel.actionBarStateFlow.value.isPlaying).isEqualTo(false)
         }
     }
 

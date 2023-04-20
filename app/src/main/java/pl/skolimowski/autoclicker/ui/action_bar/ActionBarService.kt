@@ -55,7 +55,6 @@ class ActionBarService : AccessibilityService() {
         initScreenSize()
 
         actionBarManager.createView()
-        actionBarManager.setUpView()
         clickPointsManager.setUp()
     }
 
@@ -123,16 +122,6 @@ class ActionBarService : AccessibilityService() {
                             clickPointConfigWindowManager.updateView(it.clickPointConfigState)
                         }
                     }
-                }
-            }
-        }
-    }
-
-    private fun setUpMacroStateCollector() {
-        myApp.applicationScope.launch {
-            viewModel.macroStateFlow.collectLatest {
-                withContext(Dispatchers.Main) {
-                    actionBarManager.macroStateChanged(it)
                 }
             }
         }
@@ -343,6 +332,13 @@ class ActionBarService : AccessibilityService() {
         lateinit var params: WindowManager.LayoutParams
         private lateinit var viewsContainer: FrameLayout
 
+        private lateinit var ivClose: ImageView
+        private lateinit var ivRemove: ImageView
+        private lateinit var ivAdd: ImageView
+        private lateinit var ivPlay: ImageView
+        private lateinit var ivPause: ImageView
+        private lateinit var ivConfig: ImageView
+
         fun createView() {
             viewsContainer = FrameLayout(this@ActionBarService)
             val inflater = LayoutInflater.from(this@ActionBarService)
@@ -351,64 +347,55 @@ class ActionBarService : AccessibilityService() {
             params = createWindowLayoutParams()
 
             wm.addView(viewsContainer, params)
+
+            findViews()
+            setUpView()
         }
 
-        fun setUpView() {
-            viewsContainer.findViewById<ImageView>(R.id.iv_close).setOnClickListener {
-                viewModel.onUiEvent(OnCloseImageClickedEvent)
-            }
-
-            viewsContainer.findViewById<ImageView>(R.id.iv_add).setOnClickListener {
-                viewModel.onUiEvent(OnAddImageClickedEvent)
-            }
-
-            viewsContainer.findViewById<ImageView>(R.id.iv_remove).setOnClickListener {
-                viewModel.onUiEvent(OnRemoveImageClickedEvent)
-            }
-
-            viewsContainer.findViewById<ImageView>(R.id.iv_play).setOnClickListener {
-                viewModel.onUiEvent(OnPlayImageClickedEvent)
-            }
-
-            viewsContainer.findViewById<ImageView>(R.id.iv_pause).setOnClickListener {
-                viewModel.onUiEvent(OnPauseImageClickedEvent)
-            }
-
-            viewsContainer.findViewById<ImageView>(R.id.iv_config).setOnClickListener {
-                viewModel.onUiEvent(OnConfigImageClickedEvent)
-            }
-
-            setUpActionBarDrag()
-            setUpMacroStateCollector()
+        private fun findViews() {
+            ivClose = viewsContainer.findViewById(R.id.iv_close)
+            ivAdd = viewsContainer.findViewById(R.id.iv_add)
+            ivRemove = viewsContainer.findViewById(R.id.iv_remove)
+            ivPlay = viewsContainer.findViewById(R.id.iv_play)
+            ivPause = viewsContainer.findViewById(R.id.iv_pause)
+            ivConfig = viewsContainer.findViewById(R.id.iv_config)
         }
 
-        fun macroStateChanged(macroState: MacroState) {
-            val playImage = viewsContainer.findViewById<ImageView>(R.id.iv_play)
-            val pauseImage = viewsContainer.findViewById<ImageView>(R.id.iv_pause)
+        private fun setUpView() {
+            ivClose.setOnClickListener { viewModel.onUiEvent(OnCloseImageClickedEvent) }
+            ivAdd.setOnClickListener { viewModel.onUiEvent(OnAddImageClickedEvent) }
+            ivRemove.setOnClickListener { viewModel.onUiEvent(OnRemoveImageClickedEvent) }
+            ivPlay.setOnClickListener { viewModel.onUiEvent(OnPlayImageClickedEvent) }
+            ivPause.setOnClickListener { viewModel.onUiEvent(OnPauseImageClickedEvent) }
+            ivConfig.setOnClickListener { viewModel.onUiEvent(OnConfigImageClickedEvent) }
 
-            if (macroState.isPlaying) {
-                playImage.visibility = View.GONE
-                pauseImage.visibility = View.VISIBLE
-            } else {
-                playImage.visibility = View.VISIBLE
-                pauseImage.visibility = View.GONE
-            }
-
-            wm.updateViewLayout(viewsContainer, params)
-        }
-
-        private fun setUpActionBarDrag() {
-            collectActionBarDragState()
             setUpActionBarDragTouchListener()
+            collectActionBarState()
         }
 
-        private fun collectActionBarDragState() {
+        private fun collectActionBarState() {
             myApp.applicationScope.launch {
                 viewModel.actionBarStateFlow.collectLatest {
                     withContext(Dispatchers.Main) {
                         val dragState = it.dragState
                         params.x = dragState.x
                         params.y = dragState.y
+
+                        if (it.isPlaying) {
+                            ivPlay.visibility = View.GONE
+                            ivPause.visibility = View.VISIBLE
+
+                            ivAdd.visibility = View.GONE
+                            ivRemove.visibility = View.GONE
+                            ivConfig.visibility = View.GONE
+                        } else {
+                            ivPlay.visibility = View.VISIBLE
+                            ivPause.visibility = View.GONE
+
+                            ivAdd.visibility = View.VISIBLE
+                            ivRemove.visibility = View.VISIBLE
+                            ivConfig.visibility = View.VISIBLE
+                        }
 
                         wm.updateViewLayout(viewsContainer, params)
                     }

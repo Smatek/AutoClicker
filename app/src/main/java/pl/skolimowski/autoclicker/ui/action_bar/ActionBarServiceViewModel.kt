@@ -219,6 +219,8 @@ class ActionBarServiceViewModel @Inject constructor(
             macroStateFlow.collect {
                 Timber.i("macroState changed to: $it")
 
+                _actionBarStateFlow.value = actionBarStateFlow.value.copy(isPlaying = it.isPlaying)
+
                 if (it.isPlaying) {
                     macroPlayer.play()
                 } else {
@@ -335,7 +337,8 @@ data class ClickPoint(
 ) : Draggable()
 
 data class ActionBarState(
-    override val dragState: DragState = DragState()
+    override val dragState: DragState = DragState(),
+    val isPlaying: Boolean = false
 ) : Draggable()
 
 abstract class Draggable {
