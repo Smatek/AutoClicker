@@ -34,14 +34,14 @@ class ActionBarServiceViewModel @Inject constructor(
     private val _actionsSharedFlow = MutableSharedFlow<ActionBarServiceActions>()
     val actionsSharedFlow: SharedFlow<ActionBarServiceActions> = _actionsSharedFlow
 
+    private val _macroConfigWindowStateFlow = MutableStateFlow(MacroConfigWindowState())
+    val macroConfigWindowStateFlow: StateFlow<MacroConfigWindowState> = _macroConfigWindowStateFlow
+
+    private val _clickPointConfigWindowStateFlow = MutableStateFlow(ClickPointConfigWindowState())
+    val clickPointConfigWindowStateFlow: StateFlow<ClickPointConfigWindowState> =
+        _clickPointConfigWindowStateFlow
+
     private val macroPlayer = MacroPlayer()
-    private var macroConfig = MacroConfig()
-
-    // var used to store state of config during showing dialog
-    private lateinit var tempConfig: MacroConfig
-
-    // var used to store state of config during showing dialog
-    private lateinit var tempClickPointConfigState: ClickPointConfigState
 
     var viewSizes: ViewSizes = ViewSizes()
 
@@ -77,9 +77,10 @@ class ActionBarServiceViewModel @Inject constructor(
             }
             is OnConfigImageClickedEvent -> {
                 applicationScope.launch(dispatchers.io) {
-                    _actionsSharedFlow.emit(ShowConfigDialog(macroConfig))
-
-                    tempConfig = macroConfig
+                    _macroConfigWindowStateFlow.value = _macroConfigWindowStateFlow.value.copy(
+                        macroConfig = macroStateFlow.value.macroConfig,
+                        isVisible = true
+                    )
                 }
             }
             is OnRemoveImageClickedEvent -> {
@@ -111,43 +112,39 @@ class ActionBarServiceViewModel @Inject constructor(
                 applicationScope.launch(dispatchers.io) {
                     clickPointsStateFlow.value.list.find { it.index == uiEvent.index }
                         ?.let { clickPoint ->
-                            tempClickPointConfigState =
-                                ClickPointConfigState(
+                            _clickPointConfigWindowStateFlow.value =
+                                clickPointConfigWindowStateFlow.value.copy(
+                                    clickPoint = clickPoint,
                                     delay = clickPoint.delay.toString(),
-                                    clickPoint = clickPoint
+                                    isVisible = true
                                 )
-
-                            _actionsSharedFlow.emit(
-                                ShowClickPointConfigDialogAction(tempClickPointConfigState)
-                            )
                         }
                 }
             }
             is OnDelayTextChangedEvent -> {
                 applicationScope.launch(dispatchers.io) {
-                    tempClickPointConfigState = tempClickPointConfigState.copy(delay = uiEvent.text)
-
-                    _actionsSharedFlow.emit(
-                        UpdateClickPointConfigDialogAction(tempClickPointConfigState)
-                    )
+                    _clickPointConfigWindowStateFlow.value =
+                        clickPointConfigWindowStateFlow.value.copy(delay = uiEvent.text)
                 }
             }
             is OnCancelClickPointConfigClickEvent -> {
                 applicationScope.launch(dispatchers.io) {
-                    _actionsSharedFlow.emit(DismissClickPointConfigDialogAction)
+                    _clickPointConfigWindowStateFlow.value =
+                        clickPointConfigWindowStateFlow.value.copy(isVisible = false)
                 }
             }
             is OnSaveClickPointConfigClickEvent -> {
                 applicationScope.launch(dispatchers.io) {
-                    val isValid = tempClickPointConfigState.isValid()
+                    val state = clickPointConfigWindowStateFlow.value
+                    val isValid = state.isValid()
 
                     if (isValid) {
-                        val updatedClickPoint = tempClickPointConfigState.clickPoint.copy(
-                            delay = tempClickPointConfigState.delay.toLong()
+                        val updatedClickPoint = state.clickPoint.copy(
+                            delay = state.delay.toLong()
                         )
                         updateClickPoint(updatedClickPoint)
 
-                        _actionsSharedFlow.emit(DismissClickPointConfigDialogAction)
+                        _clickPointConfigWindowStateFlow.value = state.copy(isVisible = false)
                     }
                 }
             }
@@ -176,39 +173,46 @@ class ActionBarServiceViewModel @Inject constructor(
             is OnCyclesCountTextChangedEvent -> {
                 applicationScope.launch(dispatchers.io) {
                     val cycles = MacroConfig.convertTextToCycle(uiEvent.text)
-                    tempConfig = tempConfig.copy(cycles = cycles)
 
-                    _actionsSharedFlow.emit(UpdateConfigDialog(tempConfig))
+                    val macroConfig =
+                        macroConfigWindowStateFlow.value.macroConfig.copy(cycles = cycles)
+                    _macroConfigWindowStateFlow.value =
+                        macroConfigWindowStateFlow.value.copy(macroConfig = macroConfig)
                 }
             }
             is OnInfiniteRadioButtonCheckedEvent -> {
                 applicationScope.launch(dispatchers.io) {
-                    tempConfig = tempConfig.copy(cycleMode = CycleMode.INFINITE)
-
-                    _actionsSharedFlow.emit(UpdateConfigDialog(tempConfig))
+                    val macroConfig =
+                        macroConfigWindowStateFlow.value.macroConfig.copy(cycleMode = CycleMode.INFINITE)
+                    _macroConfigWindowStateFlow.value =
+                        macroConfigWindowStateFlow.value.copy(macroConfig = macroConfig)
                 }
             }
             is OnCyclesCountRadioButtonCheckedEvent -> {
                 applicationScope.launch(dispatchers.io) {
-                    tempConfig = tempConfig.copy(cycleMode = CycleMode.CYCLES_COUNT)
-
-                    _actionsSharedFlow.emit(UpdateConfigDialog(tempConfig))
+                    val macroConfig =
+                        macroConfigWindowStateFlow.value.macroConfig.copy(cycleMode = CycleMode.CYCLES_COUNT)
+                    _macroConfigWindowStateFlow.value =
+                        macroConfigWindowStateFlow.value.copy(macroConfig = macroConfig)
                 }
             }
             is OnSaveConfigClickEvent -> {
                 applicationScope.launch(dispatchers.io) {
-                    val isValid = tempConfig.isValid()
+                    val newMacroConfig = macroConfigWindowStateFlow.value.macroConfig
+                    val isValid = newMacroConfig.isValid()
 
                     if (isValid) {
-                        macroConfig = tempConfig
-
-                        _actionsSharedFlow.emit(DismissConfigDialog)
+                        _macroStateFlow.value =
+                            macroStateFlow.value.copy(macroConfig = newMacroConfig)
+                        _macroConfigWindowStateFlow.value =
+                            macroConfigWindowStateFlow.value.copy(isVisible = false)
                     }
                 }
             }
             is OnCancelConfigClickEvent -> {
                 applicationScope.launch(dispatchers.io) {
-                    _actionsSharedFlow.emit(DismissConfigDialog)
+                    _macroConfigWindowStateFlow.value =
+                        macroConfigWindowStateFlow.value.copy(isVisible = false)
                 }
             }
         }
@@ -249,13 +253,13 @@ class ActionBarServiceViewModel @Inject constructor(
     }
 
     inner class MacroPlayer {
-        var job: Job? = null
+        private var job: Job? = null
 
         fun play() {
             job = applicationScope.launch(dispatchers.io) {
                 val list = clickPointsStateFlow.value.list
 
-                macroConfig.cycles?.let { cycles ->
+                macroStateFlow.value.macroConfig.cycles?.let { cycles ->
                     for (i in 0 until cycles) {
                         list.forEach {
                             performClick(it)
@@ -308,7 +312,13 @@ enum class CycleMode {
 }
 
 data class MacroState(
-    val isPlaying: Boolean = false
+    val isPlaying: Boolean = false,
+    val macroConfig: MacroConfig = MacroConfig()
+)
+
+data class MacroConfigWindowState(
+    val macroConfig: MacroConfig = MacroConfig(),
+    val isVisible: Boolean = false
 )
 
 data class ClickPointsState(
@@ -321,9 +331,10 @@ data class ClickPointsState(
     }
 }
 
-data class ClickPointConfigState(
+data class ClickPointConfigWindowState(
     val delay: String = "",
-    val clickPoint: ClickPoint
+    val clickPoint: ClickPoint = ClickPoint(),
+    val isVisible: Boolean = false
 ) {
     fun isValid(): Boolean {
         return delay.isNotEmpty() && delay.toLong() > 0

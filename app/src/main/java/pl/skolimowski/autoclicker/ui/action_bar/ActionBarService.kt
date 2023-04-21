@@ -54,8 +54,10 @@ class ActionBarService : AccessibilityService() {
 
         initScreenSize()
 
-        actionBarManager.createView()
+        actionBarManager.setUp()
         clickPointsManager.setUp()
+        macroConfigWindowManager.setUp()
+        clickPointConfigWindowManager.setUp()
     }
 
     override fun onCreate() {
@@ -92,56 +94,12 @@ class ActionBarService : AccessibilityService() {
                             clickPointsManager.performClick(it)
                         }
                     }
-                    is ShowConfigDialog -> {
-                        withContext(Dispatchers.Main) {
-                            macroConfigWindowManager.show(it.macroConfig)
-                        }
-                    }
-                    is DismissConfigDialog -> {
-                        withContext(Dispatchers.Main) {
-                            macroConfigWindowManager.dismiss()
-                        }
-                    }
-                    is UpdateConfigDialog -> {
-                        withContext(Dispatchers.Main) {
-                            macroConfigWindowManager.updateView(it.macroConfig)
-                        }
-                    }
-                    is ShowClickPointConfigDialogAction -> {
-                        withContext(Dispatchers.Main) {
-                            clickPointConfigWindowManager.show(it.clickPointConfigState)
-                        }
-                    }
-                    is DismissClickPointConfigDialogAction -> {
-                        withContext(Dispatchers.Main) {
-                            clickPointConfigWindowManager.dismiss()
-                        }
-                    }
-                    is UpdateClickPointConfigDialogAction -> {
-                        withContext(Dispatchers.Main) {
-                            clickPointConfigWindowManager.updateView(it.clickPointConfigState)
-                        }
-                    }
                 }
             }
         }
     }
 
-    private fun createWindowLayoutParams(): WindowManager.LayoutParams {
-        val lp = WindowManager.LayoutParams()
-
-        lp.type = WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
-        lp.format = PixelFormat.TRANSLUCENT
-        lp.flags = lp.flags or
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
-        lp.width = WindowManager.LayoutParams.WRAP_CONTENT
-        lp.height = WindowManager.LayoutParams.WRAP_CONTENT
-
-        return lp
-    }
-
-    inner class ClickPointsManager {
+    inner class ClickPointsManager : DraggableViewManager() {
         fun setUp() {
             myApp.applicationScope.launch {
                 viewModel.clickPointsStateFlow.collectLatest { clickPointsState ->
@@ -328,7 +286,7 @@ class ActionBarService : AccessibilityService() {
         }
     }
 
-    inner class ActionBarManager {
+    inner class ActionBarManager : DraggableViewManager() {
         lateinit var params: WindowManager.LayoutParams
         private lateinit var viewsContainer: FrameLayout
 
@@ -339,7 +297,7 @@ class ActionBarService : AccessibilityService() {
         private lateinit var ivPause: ImageView
         private lateinit var ivConfig: ImageView
 
-        fun createView() {
+        fun setUp() {
             viewsContainer = FrameLayout(this@ActionBarService)
             val inflater = LayoutInflater.from(this@ActionBarService)
             inflater.inflate(R.layout.action_bar, viewsContainer)
@@ -442,13 +400,35 @@ class ActionBarService : AccessibilityService() {
         private lateinit var cancelTextView: TextView
         private lateinit var cyclesEditText: TextInputEditText
 
-        fun show(macroConfig: MacroConfig) {
-            createDialog()
-
-            updateView(macroConfig)
+        override fun findViews() {
+            infiniteRadioButton = configWindow.findViewById(R.id.rb_infinite)
+            cyclesRadioButton = configWindow.findViewById(R.id.rb_cycles)
+            saveTextView = configWindow.findViewById(R.id.tv_save)
+            cancelTextView = configWindow.findViewById(R.id.tv_cancel)
+            cyclesEditText = configWindow.findViewById(R.id.et_cycles)
         }
 
-        fun updateView(macroConfig: MacroConfig) {
+        fun setUp() {
+            myApp.applicationScope.launch {
+                viewModel.macroConfigWindowStateFlow.collectLatest {
+                    withContext(Dispatchers.Main) {
+                        displayConfigDialog(it)
+                    }
+                }
+            }
+        }
+
+        private fun displayConfigDialog(state: MacroConfigWindowState) {
+            if (state.isVisible) {
+                show()
+
+                updateView(state.macroConfig)
+            } else {
+                dismiss()
+            }
+        }
+
+        private fun updateView(macroConfig: MacroConfig) {
             // reset listeners so they are not affected by setting value here
             infiniteRadioButton.setOnCheckedChangeListener(null)
             cyclesRadioButton.setOnCheckedChangeListener(null)
@@ -472,14 +452,6 @@ class ActionBarService : AccessibilityService() {
             saveTextView.setOnClickListener(saveClickListener)
             cancelTextView.setOnClickListener(cancelClickListener)
             cyclesEditText.addTextChangedListener(cyclesCountTextWatcher)
-        }
-
-        override fun findViews() {
-            infiniteRadioButton = configWindow.findViewById(R.id.rb_infinite)
-            cyclesRadioButton = configWindow.findViewById(R.id.rb_cycles)
-            saveTextView = configWindow.findViewById(R.id.tv_save)
-            cancelTextView = configWindow.findViewById(R.id.tv_cancel)
-            cyclesEditText = configWindow.findViewById(R.id.et_cycles)
         }
 
         private val saveClickListener = View.OnClickListener {
@@ -511,21 +483,41 @@ class ActionBarService : AccessibilityService() {
         private lateinit var cancelTextView: TextView
         private lateinit var delayEditText: TextInputEditText
 
-        fun show(clickPointConfigState: ClickPointConfigState) {
-            createDialog()
-
-            updateView(clickPointConfigState)
+        override fun findViews() {
+            saveTextView = configWindow.findViewById(R.id.tv_save)
+            cancelTextView = configWindow.findViewById(R.id.tv_cancel)
+            delayEditText = configWindow.findViewById(R.id.et_delay)
         }
 
-        fun updateView(clickPointConfigState: ClickPointConfigState) {
+        fun setUp() {
+            myApp.applicationScope.launch {
+                viewModel.clickPointConfigWindowStateFlow.collectLatest {
+                    withContext(Dispatchers.Main) {
+                        displayConfigDialog(it)
+                    }
+                }
+            }
+        }
+
+        private fun displayConfigDialog(state: ClickPointConfigWindowState) {
+            if (state.isVisible) {
+                show()
+
+                updateView(state)
+            } else {
+                dismiss()
+            }
+        }
+
+        private fun updateView(state: ClickPointConfigWindowState) {
             // reset listeners so they are not affected by setting value here
             delayEditText.removeTextChangedListener(delayTextWatcher)
 
             val selection = delayEditText.selectionStart
-            val delayText = clickPointConfigState.delay
+            val delayText = state.delay
             delayEditText.setText(delayText)
             delayEditText.error =
-                if (clickPointConfigState.isValid()) null else "invalid" // todo resource
+                if (state.isValid()) null else "invalid" // todo resource
 
             if (delayText.length >= selection) {
                 delayEditText.setSelection(selection)
@@ -534,12 +526,6 @@ class ActionBarService : AccessibilityService() {
             saveTextView.setOnClickListener(saveClickListener)
             cancelTextView.setOnClickListener(cancelClickListener)
             delayEditText.addTextChangedListener(delayTextWatcher)
-        }
-
-        override fun findViews() {
-            saveTextView = configWindow.findViewById(R.id.tv_save)
-            cancelTextView = configWindow.findViewById(R.id.tv_cancel)
-            delayEditText = configWindow.findViewById(R.id.et_delay)
         }
 
         private val saveClickListener = View.OnClickListener {
@@ -557,32 +543,52 @@ class ActionBarService : AccessibilityService() {
         }
     }
 
+    abstract inner class DraggableViewManager {
+        protected fun createWindowLayoutParams(): WindowManager.LayoutParams {
+            val lp = WindowManager.LayoutParams()
+
+            lp.type = WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
+            lp.format = PixelFormat.TRANSLUCENT
+            lp.flags = lp.flags or
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+            lp.width = WindowManager.LayoutParams.WRAP_CONTENT
+            lp.height = WindowManager.LayoutParams.WRAP_CONTENT
+
+            return lp
+        }
+    }
+
     // AlertDialogs and dialogFragments needs activity to be shown. Other option was activity
     // displayed as an dialog, but the problem is that it is shown below action bar view.
     // That is why config window is created as a view of ActionBarService
     abstract inner class ConfigWindowManager(private val layoutResId: Int) {
         protected lateinit var configWindow: FrameLayout
-        private lateinit var dialog: AlertDialog
+        private var dialog: AlertDialog? = null
 
-        protected fun createDialog() {
-            val context = ContextThemeWrapper(this@ActionBarService, R.style.Theme_AutoClicker)
-            val inflater = LayoutInflater.from(context)
-            configWindow = inflater.inflate(layoutResId, null) as FrameLayout
-            dialog = Builder(context)
-                .setView(configWindow)
-                .setCancelable(false)
-                .create()
+        protected fun show() {
+            if (dialog == null) {
+                val context = ContextThemeWrapper(this@ActionBarService, R.style.Theme_AutoClicker)
+                val inflater = LayoutInflater.from(context)
+                configWindow = inflater.inflate(layoutResId, null) as FrameLayout
+                dialog = Builder(context)
+                    .setView(configWindow)
+                    .setCancelable(false)
+                    .create()
 
-            dialog.window?.let { window ->
-                window.setType(WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY)
-                dialog.show()
+                dialog?.window?.let { window ->
+                    window.setType(WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY)
+                    dialog?.show()
+                }
+
+                findViews()
             }
-
-            findViews()
         }
 
         fun dismiss() {
-            dialog.dismiss()
+            dialog?.dismiss()
+
+            dialog = null
         }
 
         abstract fun findViews()
@@ -635,18 +641,7 @@ sealed class DragEvents {
     class ActionMove(val rawX: Float, val rawY: Float) : DragEvents()
 }
 
-// fixme add postfix "Action" to all object/classes
 sealed class ActionBarServiceActions {
     object OnDisableSelfAction : ActionBarServiceActions()
-    class ShowConfigDialog(val macroConfig: MacroConfig) : ActionBarServiceActions()
-    class UpdateConfigDialog(val macroConfig: MacroConfig) : ActionBarServiceActions()
-    object DismissConfigDialog : ActionBarServiceActions()
     class PerformClickAction(val x: Int, val y: Int) : ActionBarServiceActions()
-    class ShowClickPointConfigDialogAction(val clickPointConfigState: ClickPointConfigState) :
-        ActionBarServiceActions()
-
-    class UpdateClickPointConfigDialogAction(val clickPointConfigState: ClickPointConfigState) :
-        ActionBarServiceActions()
-
-    object DismissClickPointConfigDialogAction : ActionBarServiceActions()
 }

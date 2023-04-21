@@ -221,30 +221,18 @@ class ActionBarServiceViewModelTest {
     }
 
     @Test
-    fun onUiEvent_OnConfigImageClickedEvent_initialMacroConfig() = runTest {
-        viewModel.actionsSharedFlow.test {
-            viewModel.onUiEvent(OnConfigImageClickedEvent)
+    fun onUiEvent_OnConfigImageClickedEvent() = runTest {
+        (viewModel.macroStateFlow as MutableStateFlow).value = MacroState(
+            macroConfig = MacroConfig(cycleMode = CycleMode.INFINITE)
+        )
 
-            val action = awaitItem()
-
-            assertThat(action).isInstanceOf(ShowConfigDialog::class.java)
-            assertThat((action as ShowConfigDialog).macroConfig).isEqualTo(MacroConfig())
-        }
-    }
-
-    @Test
-    fun onUiEvent_OnConfigImageClickedEvent_alreadyChangedMacro() = runTest {
         viewModel.onUiEvent(OnConfigImageClickedEvent)
-        viewModel.onUiEvent(OnInfiniteRadioButtonCheckedEvent)
-        viewModel.onUiEvent(OnSaveConfigClickEvent)
 
-        viewModel.actionsSharedFlow.test {
-            viewModel.onUiEvent(OnConfigImageClickedEvent)
+        viewModel.macroConfigWindowStateFlow.test {
+            val state = awaitItem()
 
-            val action = awaitItem()
-
-            assertThat(action).isInstanceOf(ShowConfigDialog::class.java)
-            assertThat((action as ShowConfigDialog).macroConfig).isEqualTo(MacroConfig(cycleMode = CycleMode.INFINITE))
+            assertThat(state.macroConfig).isEqualTo(MacroConfig(cycleMode = CycleMode.INFINITE))
+            assertThat(state.isVisible).isEqualTo(true)
         }
     }
 
@@ -484,69 +472,71 @@ class ActionBarServiceViewModelTest {
 
     @Test
     fun onUiEvent_OnClickPointClickEvent() = runTest {
-        viewModel.onUiEvent(OnAddImageClickedEvent)
-
-        viewModel.actionsSharedFlow.test {
-            viewModel.onUiEvent(OnClickPointClickEvent(index = 1))
-
-            val action = awaitItem()
-
-            assertThat(action).isInstanceOf(ShowClickPointConfigDialogAction::class.java)
-            assertThat((action as ShowClickPointConfigDialogAction).clickPointConfigState)
-                .isEqualTo(
-                    ClickPointConfigState(
-                        delay = "1000",
-                        clickPoint = ClickPoint(index = 1)
-                    )
+        (viewModel.clickPointsStateFlow as MutableStateFlow).value = ClickPointsState(
+            list = listOf(
+                ClickPoint(
+                    index = 1,
+                    delay = 1000
                 )
+            )
+        )
+
+        viewModel.onUiEvent(OnClickPointClickEvent(index = 1))
+
+        viewModel.clickPointConfigWindowStateFlow.test {
+            val state = awaitItem()
+
+            assertThat(state.delay).isEqualTo("1000")
+            assertThat(state.clickPoint).isEqualTo(ClickPoint(index = 1, delay = 1000))
+            assertThat(state.isVisible).isEqualTo(true)
         }
     }
 
     @Test
     fun onUiEvent_OnDelayTextChangedEvent() = runTest {
-        viewModel.onUiEvent(OnAddImageClickedEvent)
-        viewModel.onUiEvent(OnClickPointClickEvent(index = 1))
+        viewModel.onUiEvent(OnDelayTextChangedEvent("1"))
 
-        viewModel.actionsSharedFlow.test {
-            viewModel.onUiEvent(OnDelayTextChangedEvent(text = "100"))
+        viewModel.clickPointConfigWindowStateFlow.test {
+            val state = awaitItem()
 
-            val action = awaitItem()
-
-            assertThat(action).isInstanceOf(UpdateClickPointConfigDialogAction::class.java)
-            assertThat((action as UpdateClickPointConfigDialogAction).clickPointConfigState.delay)
-                .isEqualTo("100")
+            assertThat(state.delay).isEqualTo("1")
         }
     }
 
     @Test
     fun onUiEvent_OnCancelClickPointConfigClickEvent() = runTest {
-        viewModel.actionsSharedFlow.test {
-            viewModel.onUiEvent(OnCancelClickPointConfigClickEvent)
+        viewModel.onUiEvent(OnCancelClickPointConfigClickEvent)
 
-            val action = awaitItem()
+        viewModel.clickPointConfigWindowStateFlow.test {
+            val state = awaitItem()
 
-            assertThat(action).isInstanceOf(DismissClickPointConfigDialogAction::class.java)
+            assertThat(state.isVisible).isEqualTo(false)
         }
     }
 
     @Test
     fun onUiEvent_OnSaveClickPointConfigClickEvent_isValid_true() = runTest {
-        viewModel.onUiEvent(OnAddImageClickedEvent)
-        viewModel.onUiEvent(OnClickPointClickEvent(index = 1))
-        viewModel.onUiEvent(OnDelayTextChangedEvent(text = "100"))
+        val clickPoint = ClickPoint(index = 1, delay = 100)
+        (viewModel.clickPointsStateFlow as MutableStateFlow).value =
+            ClickPointsState(list = listOf(clickPoint))
+        (viewModel.clickPointConfigWindowStateFlow as MutableStateFlow).value =
+            ClickPointConfigWindowState(
+                delay = "1000",
+                clickPoint = clickPoint
+            )
 
-        viewModel.actionsSharedFlow.test {
-            viewModel.onUiEvent(OnSaveClickPointConfigClickEvent)
+        viewModel.onUiEvent(OnSaveClickPointConfigClickEvent)
 
-            viewModel.clickPointsStateFlow.test {
-                val clickPointsState = awaitItem()
+        viewModel.clickPointConfigWindowStateFlow.test {
+            val state = awaitItem()
 
-                assertThat(clickPointsState.list[0].delay).isEqualTo(100L)
-            }
+            assertThat(state.isVisible).isEqualTo(false)
+        }
 
-            val action = awaitItem()
+        viewModel.clickPointsStateFlow.test {
+            val state = awaitItem()
 
-            assertThat(action).isInstanceOf(DismissClickPointConfigDialogAction::class.java)
+            assertThat(state.list.first().delay).isEqualTo(1000)
         }
     }
 
@@ -800,109 +790,43 @@ class ActionBarServiceViewModelTest {
 
     @Test
     fun onUiEvent_OnCyclesCountTextChangedEvent() = runTest {
-        viewModel.onUiEvent(OnConfigImageClickedEvent) // required to initialize tempConfig
+        viewModel.onUiEvent(OnCyclesCountTextChangedEvent("123"))
 
-        viewModel.actionsSharedFlow.test {
-            viewModel.onUiEvent(OnCyclesCountTextChangedEvent("123"))
+        viewModel.macroConfigWindowStateFlow.test {
+            val state = awaitItem()
 
-            val action = awaitItem()
-
-            assertThat(action).isInstanceOf(UpdateConfigDialog::class.java)
-            assertThat((action as UpdateConfigDialog).macroConfig.cycles).isEqualTo(123)
+            assertThat(state.macroConfig.cycles).isEqualTo(123)
         }
     }
 
     @Test
     fun onUiEvent_OnInfiniteRadioButtonCheckedEvent() = runTest {
-        viewModel.onUiEvent(OnConfigImageClickedEvent) // required to initialize tempConfig
+        viewModel.onUiEvent(OnInfiniteRadioButtonCheckedEvent)
 
-        viewModel.actionsSharedFlow.test {
-            viewModel.onUiEvent(OnInfiniteRadioButtonCheckedEvent)
+        viewModel.macroConfigWindowStateFlow.test {
+            val state = awaitItem()
 
-            val action = awaitItem()
-
-            assertThat(action).isInstanceOf(UpdateConfigDialog::class.java)
-            assertThat((action as UpdateConfigDialog).macroConfig.cycleMode).isEqualTo(CycleMode.INFINITE)
+            assertThat(state.macroConfig.cycleMode).isEqualTo(CycleMode.INFINITE)
         }
     }
 
     @Test
     fun onUiEvent_OnCyclesCountRadioButtonCheckedEvent() = runTest {
-        viewModel.onUiEvent(OnConfigImageClickedEvent) // required to initialize tempConfig
+        viewModel.onUiEvent(OnCyclesCountRadioButtonCheckedEvent)
 
-        viewModel.actionsSharedFlow.test {
-            viewModel.onUiEvent(OnCyclesCountRadioButtonCheckedEvent)
+        viewModel.macroConfigWindowStateFlow.test {
+            val state = awaitItem()
 
-            val action = awaitItem()
-
-            assertThat(action).isInstanceOf(UpdateConfigDialog::class.java)
-            assertThat((action as UpdateConfigDialog).macroConfig.cycleMode).isEqualTo(CycleMode.CYCLES_COUNT)
-        }
-    }
-
-    @Test
-    fun onUiEvent_OnSaveConfigClickEvent_isValid_true_infiniteMode() = runTest {
-        // fixme below test could be better by adding spy and checking if macroConfig changed but
-        //  there is problem with mockk library https://github.com/mockk/mockk/issues/564
-//        val viewModelSpy = spyk(viewModel, recordPrivateCalls = true)
-
-        viewModel.onUiEvent(OnConfigImageClickedEvent)
-        viewModel.onUiEvent(OnInfiniteRadioButtonCheckedEvent)
-
-//        viewModelSpy.actionsSharedFlow.test {
-        viewModel.actionsSharedFlow.test {
-//            every { viewModelSpy getProperty "macroConfig" } returns MacroConfig(cycleMode = CycleMode.INFINITE)
-
-//            viewModelSpy.onUiEvent(OnSaveConfigClickEvent)
-            viewModel.onUiEvent(OnSaveConfigClickEvent)
-
-            val action = awaitItem()
-
-            assertThat(action).isInstanceOf(DismissConfigDialog::class.java)
-        }
-    }
-
-    @Test
-    fun onUiEvent_OnSaveConfigClickEvent_isValid_true_cyclesCountMode() = runTest {
-        // fixme below test could be better by adding spy and checking if macroConfig changed but
-        //  there is problem with mockk library https://github.com/mockk/mockk/issues/564
-//        val viewModelSpy = spyk(viewModel, recordPrivateCalls = true)
-
-        viewModel.onUiEvent(OnConfigImageClickedEvent)
-
-//        viewModelSpy.actionsSharedFlow.test {
-        viewModel.actionsSharedFlow.test {
-//            every { viewModelSpy getProperty "macroConfig" } returns MacroConfig(
-//                cycleMode = CycleMode.CYCLES_COUNT,
-//                cyclesText = "1"
-//            )
-
-//            viewModelSpy.onUiEvent(OnSaveConfigClickEvent)
-            viewModel.onUiEvent(OnSaveConfigClickEvent)
-
-            val action = awaitItem()
-
-            assertThat(action).isInstanceOf(DismissConfigDialog::class.java)
+            assertThat(state.macroConfig.cycleMode).isEqualTo(CycleMode.CYCLES_COUNT)
         }
     }
 
     @Test
     fun onUiEvent_OnSaveConfigClickEvent_isValid_false() = runTest {
-        // fixme below test could be better by adding spy and checking if macroConfig changed but
-        //  there is problem with mockk library https://github.com/mockk/mockk/issues/564
-//        val viewModelSpy = spyk(viewModel, recordPrivateCalls = true)
-
         viewModel.onUiEvent(OnConfigImageClickedEvent)
         viewModel.onUiEvent(OnCyclesCountTextChangedEvent("0"))
 
-//        viewModelSpy.actionsSharedFlow.test {
         viewModel.actionsSharedFlow.test {
-//            every { viewModelSpy getProperty "macroConfig" } returns MacroConfig(
-//                cycleMode = CycleMode.CYCLES_COUNT,
-//                cyclesText = "0"
-//            )
-
-//            viewModelSpy.onUiEvent(OnSaveConfigClickEvent)
             viewModel.onUiEvent(OnSaveConfigClickEvent)
 
             expectNoEvents()
@@ -911,12 +835,12 @@ class ActionBarServiceViewModelTest {
 
     @Test
     fun onUiEvent_OnCancelConfigClickEvent() = runTest {
-        viewModel.actionsSharedFlow.test {
-            viewModel.onUiEvent(OnCancelConfigClickEvent)
+        viewModel.onUiEvent(OnCancelConfigClickEvent)
 
-            val action = awaitItem()
+        viewModel.macroConfigWindowStateFlow.test {
+            val state = awaitItem()
 
-            assertThat(action).isInstanceOf(DismissConfigDialog::class.java)
+            assertThat(state.isVisible).isEqualTo(false)
         }
     }
 }
