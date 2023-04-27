@@ -58,9 +58,8 @@ def setUpJacoco() {
 
     task jacocoReport(type: JacocoReport) {
         reports {
-            // todo fix deprecation
-            xml.enabled = true
-            html.enabled = true
+            xml.required = true
+            html.required = true
         }
 
         group = "Reporting"
