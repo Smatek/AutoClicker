@@ -1,0 +1,7 @@
+<resources>
+    <dimen name="fab_margin">16dp</dimen>
+    <dimen name="action_bar_icon_size">48dp</dimen>
+    <dimen name="click_point_size">48dp</dimen>
+    <dimen name="padding_medium">16dp</dimen>
+    <dimen name="click_point_stroke">5dp</dimen>
+</resources>

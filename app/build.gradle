@@ -1,6 +1,8 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
+    id 'kotlin-kapt'
+    id 'com.google.dagger.hilt.android'
 }
 
 android {
@@ -9,18 +11,21 @@ android {
 
     defaultConfig {
         applicationId "pl.skolimowski.autoclicker"
-        minSdk 24
+        minSdk 30
         targetSdk 33
         versionCode 1
         versionName "1.0"
 
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner "pl.skolimowski.autoclicker.test_util.HiltTestRunner"
     }
 
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            testCoverageEnabled true
         }
     }
     compileOptions {
@@ -30,14 +35,103 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
+    buildFeatures {
+        viewBinding true
+    }
+
+    testOptions {
+        // solves issue of using mockk in instrumented test
+        // https://github.com/mockk/mockk/issues/297
+        packagingOptions {
+            jniLibs {
+                useLegacyPackaging true
+            }
+        }
+    }
+
+    setUpJacoco()
+    setUpKtLint()
+}
+
+def setUpJacoco() {
+    apply plugin: 'jacoco'
+
+    task jacocoReport(type: JacocoReport) {
+        reports {
+            xml.required = true
+            html.required = true
+        }
+
+        group = "Reporting"
+        description = "generate merged coverage report for unit and instrumented tests"
+
+        dependsOn clean
+        dependsOn 'createDebugUnitTestCoverageReport'
+        dependsOn 'createDebugAndroidTestCoverageReport'
+
+        def fileFilter = ['**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*', '**/*Test*.*', 'android/**/*.*']
+        sourceDirectories.from = files(["src/main/java"])
+        classDirectories.from = files([fileTree(dir: "${project.buildDir}/tmp/kotlin-classes/debug", excludes: fileFilter)])
+        executionData.from = fileTree(dir: project.projectDir, includes: ['**/*.exec', '**/*.ec'])
+    }
+}
+
+def setUpKtLint() {
+    tasks.getByPath("preBuild").dependsOn("ktlintFormat")
+
+    apply plugin: "org.jlleitschuh.gradle.ktlint"
+
+    ktlint {
+        android = true
+        ignoreFailures = false
+        disabledRules = [
+                "final-newline",
+                "no-wildcard-imports",
+                "max-line-length"
+        ]
+        reporters {
+            reporter "checkstyle"
+        }
+    }
 }
 
 dependencies {
-
+    // UI
     implementation 'androidx.core:core-ktx:1.7.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.8.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.navigation:navigation-fragment-ktx:2.5.3'
+    implementation 'androidx.navigation:navigation-ui-ktx:2.5.3'
+
+    // tests
     testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation "androidx.test:core:1.5.0"
+    androidTestImplementation "androidx.test:core-ktx:1.5.0"
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-intents:3.5.1'
+
+    // mockk
+    testImplementation "io.mockk:mockk:1.12.3"
+    androidTestImplementation "io.mockk:mockk-android:1.12.3"
+
+    // hilt
+    // todo use same version as in root/build.gradle
+    implementation "com.google.dagger:hilt-android:2.44"
+    kapt "com.google.dagger:hilt-compiler:2.44"
+    androidTestImplementation 'com.google.dagger:hilt-android-testing:2.44'
+    kaptAndroidTest 'com.google.dagger:hilt-android-compiler:2.44'
+
+    // coroutines
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.4"
+
+    // turbine
+    testImplementation 'app.cash.turbine:turbine:0.12.1'
+
+    // truth
+    testImplementation "com.google.truth:truth:1.1.3"
+
+    // Timber
+    implementation 'com.jakewharton.timber:timber:5.0.1'
 }
