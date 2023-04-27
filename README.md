@@ -37,4 +37,6 @@ https://www.linkedin.com/in/mateusz-skolimowski-337008126/
 - [ ] Enable click on image beside x:y
 
 ## Examples
-TODO
+|             drag              |             close              |          multiple click points           |             multiple cycles              |
+|:-----------------------------:|:------------------------------:|:----------------------------------------:|:----------------------------------------:|
+| ![](gifs/action_bar_drag.gif) | ![](gifs/action_bar_close.gif) |![](gifs/macro_multiple_click_points.gif) |![](gifs/macro_multiple_cycle_counts.gif) |
