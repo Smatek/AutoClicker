@@ -15,13 +15,69 @@
         android:paddingTop="@dimen/padding_medium">
 
         <TextView
-            android:id="@+id/label_run_config"
-            style="@style/TextAppearance.Material3.TitleLarge"
+            android:id="@+id/label_config_name"
+            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/label_run_config"
+            android:text="@string/label_config_name"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_config_name"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:errorEnabled="true"
+            android:hint="@string/hint_config_name"
+            app:layout_constraintTop_toBottomOf="@id/label_config_name">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_config_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                tools:text="config 1" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_load"
+            style="@style/Widget.Material3.Button.ElevatedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/btn_load"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/til_config_name" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_save"
+            style="@style/Widget.Material3.Button.ElevatedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="@dimen/padding_medium"
+            android:text="@string/btn_save"
+            app:layout_constraintLeft_toRightOf="@id/btn_load"
+            app:layout_constraintTop_toBottomOf="@id/til_config_name" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_delete"
+            style="@style/Widget.Material3.Button.ElevatedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="@dimen/padding_medium"
+            android:text="@string/btn_delete"
+            app:layout_constraintLeft_toRightOf="@id/btn_save"
+            app:layout_constraintTop_toBottomOf="@id/til_config_name" />
+
+        <TextView
+            android:id="@+id/label_run_mode"
+            style="@style/TextAppearance.Material3.TitleMedium"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/padding_medium"
+            android:text="@string/label_run_mode"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/btn_load" />
 
         <RadioButton
             android:id="@+id/rb_infinite"
@@ -29,7 +85,7 @@
             android:layout_height="wrap_content"
             android:text="@string/radio_infinite"
             app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/label_run_config" />
+            app:layout_constraintTop_toBottomOf="@id/label_run_mode" />
 
         <RadioButton
             android:id="@+id/rb_cycles"
@@ -41,7 +97,7 @@
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/til_cycles"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="@dimen/padding_medium"
@@ -68,24 +124,21 @@
             app:barrierDirection="bottom"
             app:constraint_referenced_ids="rb_cycles,til_cycles" />
 
-        <!--todo make it as outlined button-->
-        <TextView
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/tv_cancel"
-            style="@style/TextAppearance.Material3.LabelLarge"
+            style="@style/Widget.Material3.Button.OutlinedButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:padding="@dimen/padding_medium"
             android:text="@string/cancel"
             app:layout_constraintRight_toRightOf="parent"
             app:layout_constraintTop_toBottomOf="@id/barrier_cycles" />
 
-        <!--todo make it as outlined button-->
-        <TextView
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/tv_save"
-            style="@style/TextAppearance.Material3.LabelLarge"
+            style="@style/Widget.Material3.Button.OutlinedButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:padding="@dimen/padding_medium"
+            android:layout_marginRight="@dimen/padding_medium"
             android:text="@string/save"
             app:layout_constraintRight_toLeftOf="@id/tv_cancel"
             app:layout_constraintTop_toBottomOf="@id/barrier_cycles" />

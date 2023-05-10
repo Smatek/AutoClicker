@@ -13,5 +13,5 @@
     <color name="click_point_text">#F57C00</color>
     <color name="click_point_stroke">#FF303F9F</color>
     <color name="click_point_fill">#1A303F9F</color>
-    <color name="action_bar_background">#40303F9F</color>
+    <color name="action_bar_background">#80303F9F</color>
 </resources>

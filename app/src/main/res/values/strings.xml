@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">AutoClicker</string>
+    <string name="app_name">Auto Clicker</string>
     <string name="title_activity_main">MainActivity</string>
     <!-- Strings used for fragments for navigation -->
     <string name="first_fragment_label">First Fragment</string>
@@ -10,7 +10,7 @@
     <string name="hello_first_fragment">Hello first fragment</string>
     <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
     <string name="btn_accessibility_settings">open accessibility settings</string>
-    <string name="label_run_config">run config</string>
+    <string name="label_run_mode">run mode</string>
     <string name="radio_infinite">indefinitely</string>
     <string name="radio_cycles_count">cycles count: </string>
     <string name="cancel">cancel</string>
@@ -18,4 +18,9 @@
     <string name="label_click_point_config">click point config</string>
     <string name="label_delay">set delay that will happen after clicking selected click point</string>
     <string name="label_delay_unit">ms</string>
+    <string name="label_config_name">configuration</string>
+    <string name="btn_load">load</string>
+    <string name="btn_save">save</string>
+    <string name="btn_delete">delete</string>
+    <string name="hint_config_name">name</string>
 </resources>
