@@ -18,20 +18,15 @@ https://www.linkedin.com/in/mateusz-skolimowski-337008126/
 - [x] Run macro
 - [x] Edit macro configuration - infinite / cycles count
 - [x] Edit click point configuration - delay
-- [ ] Add examples section to README
-- [ ] Save macro
-  - [ ] think how to handle it from UX perspective - would be nice if it was saved once with some name, and then every change is automatically made until it is deleted from database
-  - [ ] save it to database so it could later be reused and edited
-- [ ] Manage macro from fragment
-  - [ ] clean up fragment - remove unused code
+- [x] Add examples section to README
+- [x] Material3
+- [ ] Save macro in config window
+  - [ ] create buttons load, save if its new config or load, edit, delete if its already in db
+- [ ] Load macro
+- [ ] Clean up fragment - remove unused code
   - [ ] handle accessibility service state from fragment 
     - [ ] show if accessibility service is turned on
     - [ ] show button that on click navigate to accessibility settings where user can start accessibility service
-  - [ ] display list of macros
-  - [ ] edit macro
-    - [ ] click points order
-    - [ ] deleting click points
-  - [ ] load macro
 
 #### Future ideas
 - [ ] Enable click on image beside x:y
