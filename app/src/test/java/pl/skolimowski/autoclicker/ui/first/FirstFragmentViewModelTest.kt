@@ -11,6 +11,7 @@ import pl.skolimowski.autoclicker.test_util.UnconfinedTestDispatcher
 import pl.skolimowski.autoclicker.ui.first.FirstFragmentActions.*
 import pl.skolimowski.autoclicker.ui.first.FirstFragmentEvents.*
 
+// simple test to check if testing works correctly - running from AndroidStudio, with coverage, with jacoco report
 class FirstFragmentViewModelTest {
     private val appContextMock: Context = mockk(relaxed = true)
 

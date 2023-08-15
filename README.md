@@ -20,13 +20,10 @@ https://www.linkedin.com/in/mateusz-skolimowski-337008126/
 - [x] Edit click point configuration - delay
 - [x] Add examples section to README
 - [x] Material3
+- [ ] Refactor - extract inner classes from ActionBarService to make them testable
 - [ ] Save macro in config window
   - [ ] create buttons load, save if its new config or load, edit, delete if its already in db
 - [ ] Load macro
-- [ ] Clean up fragment - remove unused code
-  - [ ] handle accessibility service state from fragment 
-    - [ ] show if accessibility service is turned on
-    - [ ] show button that on click navigate to accessibility settings where user can start accessibility service
 
 #### Future ideas
 - [ ] Enable click on image beside x:y

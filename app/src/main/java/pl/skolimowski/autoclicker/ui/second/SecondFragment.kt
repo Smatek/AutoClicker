@@ -7,6 +7,7 @@ import pl.skolimowski.autoclicker.R
 import pl.skolimowski.autoclicker.databinding.FragmentSecondBinding
 import pl.skolimowski.autoclicker.ui.base.BaseViewBindingFragment
 
+// empty fragment for later use
 class SecondFragment : BaseViewBindingFragment<FragmentSecondBinding>() {
     override val bindingInflater: (LayoutInflater, ViewGroup?, Boolean) -> FragmentSecondBinding
         get() = FragmentSecondBinding::inflate

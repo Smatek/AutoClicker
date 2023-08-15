@@ -16,7 +16,6 @@ import pl.skolimowski.autoclicker.ui.first.FirstFragmentEvents.*
 
 @HiltViewModel
 class FirstFragmentViewModel @Inject constructor(
-    @ApplicationContext val appContext: Context,
     private val dispatchers: DispatcherProvider
 ) : ViewModel() {
     private val _actionsSharedFlow = MutableSharedFlow<FirstFragmentActions>()

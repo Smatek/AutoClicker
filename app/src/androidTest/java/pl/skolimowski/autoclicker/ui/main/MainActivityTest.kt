@@ -18,6 +18,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import pl.skolimowski.autoclicker.R
 
+// simple test to check if testing works correctly - running from AndroidStudio, with coverage, with jacoco report
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
 class MainActivityTest {
