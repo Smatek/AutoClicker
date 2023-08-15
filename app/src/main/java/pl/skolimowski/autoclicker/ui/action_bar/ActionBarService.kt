@@ -266,7 +266,7 @@ class ActionBarService : AccessibilityService() {
             val path = Path()
             path.moveTo(x, y)
             val builder = GestureDescription.Builder()
-            // start time is set to 100 so click point has time to change params, todo check minimal start time
+            // start time is set to 100 so click point has time to change params, todo try lower values to find optimal
             builder.addStroke(GestureDescription.StrokeDescription(path, 100, 1L))
             dispatchGesture(builder.build(), callback, null)
         }
